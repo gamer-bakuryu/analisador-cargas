@@ -23,7 +23,6 @@
   }
   header h1 { font-size: 1.8rem; margin-bottom: 6px; }
   header p { opacity: .95; font-size: .95rem; }
-
   .container { max-width: 1280px; margin: 0 auto; }
 
   .panel {
@@ -41,7 +40,6 @@
     border-left: 4px solid #f77f00;
     padding-left: 10px;
   }
-
   textarea {
     width: 100%;
     min-height: 180px;
@@ -51,12 +49,8 @@
     font-family: 'Consolas', monospace;
     font-size: .85rem;
     resize: vertical;
-    transition: border-color .2s;
   }
-  textarea:focus {
-    outline: none;
-    border-color: #1e5bb8;
-  }
+  textarea:focus { outline: none; border-color: #1e5bb8; }
 
   .buttons { margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; }
   button {
@@ -84,9 +78,7 @@
     padding: 20px;
     border-top: 5px solid #1e5bb8;
     box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-    transition: transform .15s;
   }
-  .card:hover { transform: translateY(-3px); }
   .card.orange { border-top-color: #f77f00; }
   .card .label {
     font-size: .8rem;
@@ -97,45 +89,51 @@
     font-weight: 600;
   }
   .card .value {
-    font-size: 1.9rem;
+    font-size: 1.7rem;
     font-weight: 700;
     color: #1a2b47;
     word-break: break-word;
   }
-  .card .value.small { font-size: 1.2rem; }
-  .card .sub {
-    font-size: .8rem;
-    color: #6b7a90;
-    margin-top: 6px;
-  }
+  .card .value.small { font-size: 1.15rem; }
+  .card .sub { font-size: .8rem; color: #6b7a90; margin-top: 6px; }
 
   .error {
-    background: #ffe6e6;
-    color: #b03030;
-    padding: 12px 16px;
-    border-radius: 10px;
-    margin-top: 12px;
-    font-size: .9rem;
+    background: #ffe6e6; color: #b03030;
+    padding: 12px 16px; border-radius: 10px;
+    margin-top: 12px; font-size: .9rem;
   }
   .hidden { display: none; }
   .hint { font-size: .82rem; color: #6b7a90; margin-bottom: 8px; }
+
+  table.cargas {
+    width: 100%; border-collapse: collapse; font-size: .88rem;
+    margin-top: 8px;
+  }
+  table.cargas th, table.cargas td {
+    padding: 8px 10px; text-align: left;
+    border-bottom: 1px solid #e6ecf5;
+  }
+  table.cargas th { background: #f2f6fc; color: #1e5bb8; font-weight: 600; }
+  table.cargas tr:hover td { background: #fff8ef; }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
     <h1>📦 Analisador de Carga</h1>
-    <p>Cole o relatório CSV (separado por TAB ou vírgula) e visualize as métricas da carga.</p>
+    <p>Cole o relatório (TAB separado). Sem cabeçalho — a leitura é feita por posição de coluna.</p>
   </header>
 
   <div class="panel">
     <h2>Entrada de Dados</h2>
-    <p class="hint">Cole as linhas copiadas do Excel/CSV. A primeira linha deve ser o cabeçalho.</p>
-    <textarea id="csvInput" placeholder="ETQ_AGRUP&#9;ETQ_MASTER&#9;STATUS&#9;LOJA&#9;COD&#9;DESCRIÇÃO&#9;EMBLG&#9;QUANT&#9;CARGA&#9;FORNECEDOR&#9;DATA RECEBIMENTO
-..."></textarea>
+    <p class="hint">
+      Cole as linhas direto do Excel/CSV. Formato esperado (12 colunas):
+      <code>ETQ_AGRUP | ETQ_MASTER | STATUS | LOJA | COD | DESCRIÇÃO | EMBLG | QUANT | VOLUME | CARGA | FORNECEDOR | DATA</code>
+    </p>
+    <textarea id="csvInput" placeholder="A&#9;M3036802&#9;Montada&#9;LOJA 01&#9;1202685&#9;ACAFRAO...&#9;CX-24&#9;5&#9;3&#9;,01512&#9;489324&#9;30/10/2026"></textarea>
     <div class="buttons">
       <button class="btn-primary" onclick="processar()">🔍 Analisar</button>
-      <button class="btn-secondary" onclick="document.getElementById('file').click()">📂 Carregar CSV</button>
+      <button class="btn-secondary" onclick="document.getElementById('file').click()">📂 Carregar Arquivo</button>
       <button class="btn-ghost" onclick="limpar()">🗑️ Limpar</button>
       <input type="file" id="file" accept=".csv,.txt" class="hidden" onchange="lerArquivo(event)">
     </div>
@@ -144,24 +142,24 @@
 
   <div id="results" class="hidden">
     <div class="panel">
-      <h2>Informações da Carga</h2>
+      <h2>Informações da(s) Carga(s)</h2>
       <div class="cards">
         <div class="card">
-          <div class="label">Número da Carga</div>
+          <div class="label">Número(s) da Carga</div>
           <div class="value small" id="numCarga">—</div>
         </div>
         <div class="card orange">
-          <div class="label">Nome da Carga</div>
-          <div class="value small" id="nomeCarga">—</div>
+          <div class="label">Total de Cargas</div>
+          <div class="value" id="totalCargas">0</div>
         </div>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Métricas</h2>
+      <h2>Métricas Gerais</h2>
       <div class="cards">
         <div class="card">
-          <div class="label">Volume Total</div>
+          <div class="label">Volume Total da Carga</div>
           <div class="value" id="volTotal">0</div>
           <div class="sub" id="volTotalDetalhe"></div>
         </div>
@@ -173,12 +171,12 @@
         <div class="card">
           <div class="label">Volume Montado</div>
           <div class="value" id="volMontado">0</div>
-          <div class="sub">Soma das etiquetas master</div>
+          <div class="sub">Soma do volume (EMBLG) com STATUS = Montada</div>
         </div>
         <div class="card orange">
           <div class="label">Volume Agrupado</div>
           <div class="value" id="volAgrupado">0</div>
-          <div class="sub">Soma das etiquetas agrupadas</div>
+          <div class="sub">Soma do volume (EMBLG) com STATUS = Agrupada</div>
         </div>
       </div>
     </div>
@@ -187,17 +185,37 @@
       <h2>Resumo Detalhado</h2>
       <div id="detalhes" style="font-size:.9rem; line-height:1.8; color:#334;"></div>
     </div>
+
+    <div class="panel">
+      <h2>Detalhamento por Carga</h2>
+      <div id="tabelaCargas"></div>
+    </div>
   </div>
 </div>
 
 <script>
-const COLUNAS = ["ETQ_AGRUP","ETQ_MASTER","STATUS","LOJA","COD","DESCRIÇÃO","EMBLG","QUANT","CARGA","FORNECEDOR","DATA RECEBIMENTO"];
+// ===================== CONFIGURAÇÃO DAS COLUNAS (POR POSIÇÃO) =====================
+// Como o arquivo NÃO tem cabeçalho, mapeamos por índice.
+const COL = {
+  ETQ_AGRUP:  0,
+  ETQ_MASTER: 1,
+  STATUS:     2,
+  LOJA:       3,
+  COD:        4,
+  DESCRICAO:  5,
+  EMBLG:      6,   // ex: CX-24, UN-1
+  QUANT:      7,   // quantidade de caixas
+  VOLUME:     8,   // volume/peso real (pode ter vírgula decimal)
+  CARGA:      9,   // número/código da carga
+  FORNECEDOR: 10,
+  DATA:       11
+};
 
+// ===================== DETECÇÃO DE SEPARADOR =====================
 function detectarSeparador(linha) {
   if (linha.includes('\t')) return '\t';
-  // conta vírgulas vs ponto-e-vírgula
-  const virg = (linha.match(/,/g)||[]).length;
-  const pv   = (linha.match(/;/g)||[]).length;
+  const virg = (linha.match(/,/g) || []).length;
+  const pv   = (linha.match(/;/g) || []).length;
   return pv > virg ? ';' : ',';
 }
 
@@ -221,130 +239,221 @@ function parseCSV(texto, sep) {
       campo += c;
     }
   }
-  if (campo !== '' || linha.length) { linha.push(campo); if (linha.some(x => x.trim() !== '')) linhas.push(linha); }
+  if (campo !== '' || linha.length) {
+    linha.push(campo);
+    if (linha.some(x => x.trim() !== '')) linhas.push(linha);
+  }
   return linhas;
 }
 
+// ===================== CONVERSÃO NUMÉRICA (padrão BR) =====================
 function num(valor) {
   if (valor == null) return 0;
   let s = String(valor).trim();
   if (!s) return 0;
-  // remove separador de milhar (.) e troca vírgula decimal
+  // remove espaços, R$, etc. – mantém dígitos, . e ,
+  s = s.replace(/[^\d.,-]/g, '');
   if (s.includes(',') && s.includes('.')) {
+    // formato 1.234,56 → 1234.56
     s = s.replace(/\./g, '').replace(',', '.');
   } else if (s.includes(',')) {
+    // formato 12,34 → 12.34
     s = s.replace(',', '.');
   }
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
 
+// ===================== PROCESSAMENTO PRINCIPAL =====================
 function processar() {
   const errBox = document.getElementById('errorBox');
   errBox.classList.add('hidden');
+
   const raw = document.getElementById('csvInput').value.trim();
   if (!raw) { mostrarErro('Cole os dados do relatório antes de analisar.'); return; }
 
+  // Detecta separador pela primeira linha
   const primeiraLinha = raw.split(/\r?\n/)[0];
   const sep = detectarSeparador(primeiraLinha);
   const linhas = parseCSV(raw, sep);
 
-  if (linhas.length < 2) { mostrarErro('O relatório precisa ter cabeçalho + pelo menos uma linha de dados.'); return; }
-
-  const cabecalho = linhas[0].map(c => c.trim().toUpperCase());
-  // Encontra índices das colunas necessárias (flexível a variações)
-  const idx = {};
-  COLUNAS.forEach(col => {
-    const alvo = col.toUpperCase();
-    let i = cabecalho.findIndex(c => c === alvo);
-    if (i === -1) i = cabecalho.findIndex(c => c.includes(alvo.split(' ')[0]));
-    idx[col] = i;
-  });
-
-  const obrigatorias = ["QUANT","CARGA","ETQ_AGRUP","ETQ_MASTER"];
-  const faltando = obrigatorias.filter(c => idx[c] === -1);
-  if (faltando.length) {
-    mostrarErro('Colunas não encontradas no cabeçalho: ' + faltando.join(', ') + '. Verifique se o CSV contém todas as colunas esperadas.');
+  if (linhas.length === 0) {
+    mostrarErro('Nenhuma linha de dados encontrada.');
     return;
   }
 
-  // Processa dados
-  const dados = linhas.slice(1).map(l => {
-    const obj = {};
-    COLUNAS.forEach(c => { obj[c] = idx[c] >= 0 ? (l[idx[c]] ?? '').trim() : ''; });
-    return obj;
-  }).filter(o => o.QUANT !== '' || o.CARGA !== '');
+  // ---- Valida se o número de colunas é compatível ----
+  const totalColsEsperadas = 12;
+  const amostraLen = linhas[0].length;
+  if (amostraLen < 9) {
+    mostrarErro(
+      'Formato inesperado: foram encontradas ' + amostraLen +
+      ' colunas na primeira linha, mas o esperado são pelo menos 9 (ETQ_AGRUP, ETQ_MASTER, STATUS, LOJA, COD, DESCRIÇÃO, EMBLG, QUANT, VOLUME, CARGA...). ' +
+      'Verifique se o separador é TAB.'
+    );
+    return;
+  }
 
-  if (!dados.length) { mostrarErro('Nenhuma linha de dados válida encontrada.'); return; }
-
-  let volTotal = 0;
-  let volMontado = 0;   // soma de master (linhas cujo ETQ_AGRUP vazio ou igual a ETQ_MASTER?) 
-  let volAgrupado = 0;  // soma de agrupadas
-  const cargas = new Set();
-  const masters = new Set();
-  const agrups = new Set();
-  let linhasAgrupadas = 0;
-  let linhasComEtq = 0;
-
-  dados.forEach(d => {
-    const q = num(d.QUANT);
-    volTotal += q;
-    if (d.CARGA) cargas.add(d.CARGA.trim());
-    const agrup = d.ETQ_AGRUP.trim();
-    const master = d.ETQ_MASTER.trim();
-
-    const temAgrup = agrup !== '' && agrup !== master;
-    if (temAgrup) {
-      volAgrupado += q;
-      agrups.add(agrup);
-      linhasAgrupadas++;
-    } else if (master !== '') {
-      volMontado += q;
-      masters.add(master);
-    }
-    if (master !== '' || agrup !== '') linhasComEtq++;
+  // ---- Monta os objetos por POSIÇÃO ----
+  const dados = [];
+  const invalidas = [];
+  linhas.forEach((l, idx) => {
+    // Ignora linhas totalmente vazias
+    if (l.length < 9) { invalidas.push(idx + 1); return; }
+    dados.push({
+      ETQ_AGRUP:  (l[COL.ETQ_AGRUP]  || '').trim(),
+      ETQ_MASTER: (l[COL.ETQ_MASTER] || '').trim(),
+      STATUS:     (l[COL.STATUS]     || '').trim(),
+      LOJA:       (l[COL.LOJA]       || '').trim(),
+      COD:        (l[COL.COD]        || '').trim(),
+      DESCRICAO:  (l[COL.DESCRICAO]  || '').trim(),
+      EMBLG:      (l[COL.EMBLG]      || '').trim(),
+      QUANT:      (l[COL.QUANT]      || '').trim(),
+      VOLUME:     (l[COL.VOLUME]     || '').trim(),
+      CARGA:      (l[COL.CARGA]      || '').trim(),
+      FORNECEDOR: (l[COL.FORNECEDOR] || '').trim(),
+      DATA:       (l[COL.DATA]       || '').trim()
+    });
   });
 
-  // Número e nome da carga
-  const listaCargas = [...cargas];
-  const numCarga = listaCargas.length === 1 ? listaCargas[0] :
-                   listaCargas.length > 1 ? listaCargas.length + ' cargas' : '—';
-  const nomeCarga = listaCargas.length === 1 ? 'Carga ' + listaCargas[0] :
-                    listaCargas.length > 1 ? listaCargas.join(', ') : '—';
+  if (dados.length === 0) {
+    mostrarErro('Nenhuma linha válida encontrada. Verifique o formato.');
+    return;
+  }
 
-  // % etiquetas agrupadas
-  // Considerando: das etiquetas com identificação, quantas estão agrupadas
-  const totalEtiquetas = linhasComEtq || dados.length;
-  const pct = totalEtiquetas > 0 ? (linhasAgrupadas / totalEtiquetas) * 100 : 0;
+  // ---- Acumuladores gerais ----
+  let volTotal    = 0;
+  let volMontado  = 0;
+  let volAgrupado = 0;
+  let qtdMontada  = 0;
+  let qtdAgrupada = 0;
+  let qtdSemStatus = 0;
 
-  // Render
-  document.getElementById('numCarga').textContent = numCarga;
-  document.getElementById('nomeCarga').textContent = nomeCarga;
+  // Agrupamento por carga
+  const cargasMap = new Map(); // chave = código da carga
+
+  dados.forEach(d => {
+    const vol = num(d.VOLUME);
+    volTotal += vol;
+
+    // Regra: usa a coluna STATUS (Montada / Agrupada)
+    const status = d.STATUS.toLowerCase();
+    const isMontada  = status.includes('mont');
+    const isAgrupada = status.includes('agrup');
+
+    if (isMontada)      { volMontado  += vol; qtdMontada++; }
+    else if (isAgrupada){ volAgrupado += vol; qtdAgrupada++; }
+    else                { qtdSemStatus++; }
+
+    // Agrupamento por carga
+    const chaveCarga = d.CARGA || '(sem carga)';
+    if (!cargasMap.has(chaveCarga)) {
+      cargasMap.set(chaveCarga, {
+        codigo: chaveCarga,
+        volTotal: 0,
+        volMontado: 0,
+        volAgrupado: 0,
+        qtdMontada: 0,
+        qtdAgrupada: 0,
+        linhas: 0,
+        lojas: new Set()
+      });
+    }
+    const c = cargasMap.get(chaveCarga);
+    c.volTotal += vol;
+    c.linhas++;
+    if (isMontada)       { c.volMontado  += vol; c.qtdMontada++; }
+    else if (isAgrupada) { c.volAgrupado += vol; c.qtdAgrupada++; }
+    if (d.LOJA) c.lojas.add(d.LOJA);
+  });
+
+  // ---- % etiquetas agrupadas ----
+  const totalEtiquetas = qtdMontada + qtdAgrupada;
+  const pct = totalEtiquetas > 0 ? (qtdAgrupada / totalEtiquetas) * 100 : 0;
+
+  // ---- Render: cards principais ----
+  const listaCargas = [...cargasMap.keys()];
+  document.getElementById('numCarga').textContent =
+    listaCargas.length === 1 ? listaCargas[0]
+      : listaCargas.length > 1 ? listaCargas.join(', ')
+      : '—';
+  document.getElementById('totalCargas').textContent = listaCargas.length;
+
   document.getElementById('volTotal').textContent = formatNum(volTotal);
-  document.getElementById('volTotalDetalhe').textContent = dados.length + ' linhas • ' + linhasComEtq + ' etiquetas';
+  document.getElementById('volTotalDetalhe').textContent =
+    dados.length + ' linhas • ' + totalEtiquetas + ' etiquetas válidas';
+
   document.getElementById('pctAgrup').textContent = pct.toFixed(2) + '%';
-  document.getElementById('pctAgrupDetalhe').textContent = linhasAgrupadas + ' de ' + totalEtiquetas + ' etiquetas';
+  document.getElementById('pctAgrupDetalhe').textContent =
+    qtdAgrupada + ' agrupadas / ' + totalEtiquetas + ' total';
+
   document.getElementById('volMontado').textContent = formatNum(volMontado);
   document.getElementById('volAgrupado').textContent = formatNum(volAgrupado);
 
+  // ---- Verificação ----
   const check = (volMontado + volAgrupado) - volTotal;
+  const bateu = Math.abs(check) < 0.01;
+
   document.getElementById('detalhes').innerHTML = `
-    <div><b>Cargas identificadas:</b> ${listaCargas.length} ${listaCargas.length ? '(' + listaCargas.join(', ') + ')' : ''}</div>
-    <div><b>Etiquetas master distintas:</b> ${masters.size}</div>
-    <div><b>Etiquetas agrupadas distintas:</b> ${agrups.size}</div>
-    <div><b>Soma Montado + Agrupado:</b> ${formatNum(volMontado + volAgrupado)} 
-      ${Math.abs(check) > 0.01 ? `<span style="color:#b03030"> (diferença de ${formatNum(check)} em relação ao total)</span>` : ' ✅ bate com o total'}</div>
+    <div><b>Linhas lidas:</b> ${dados.length} (${invalidas.length} ignoradas por formato inválido)</div>
+    <div><b>Etiquetas Montadas:</b> ${qtdMontada} &nbsp;|&nbsp; <b>Etiquetas Agrupadas:</b> ${qtdAgrupada}
+      ${qtdSemStatus ? ` &nbsp;|&nbsp; <span style="color:#b03030">Sem status reconhecido: ${qtdSemStatus}</span>` : ''}</div>
+    <div><b>Soma Montado + Agrupado:</b> ${formatNum(volMontado + volAgrupado)}
+      ${bateu
+        ? ' ✅ bate com o volume total'
+        : `<span style="color:#b03030"> (diferença de ${formatNum(check)} em relação ao total)</span>`}</div>
     <div style="margin-top:8px;font-size:.82rem;color:#6b7a90">
-      <b>Regra aplicada:</b> uma linha é considerada <i>agrupada</i> quando <code>ETQ_AGRUP</code> está preenchida e é diferente de <code>ETQ_MASTER</code>; caso contrário (com master preenchida) é contabilizada como <i>montada</i>.
+      <b>Regras aplicadas:</b>
+      <ul style="margin:6px 0 0 18px;">
+        <li>O <b>volume</b> é lido da coluna <code>VOLUME</code> (9ª coluna), com vírgula decimal no padrão BR.</li>
+        <li><b>Montada</b> / <b>Agrupada</b> são identificadas pela coluna <code>STATUS</code>.</li>
+        <li><code>QUANT</code> (caixas) NÃO é usado como volume — apenas o <code>VOLUME</code>.</li>
+        <li>O arquivo é interpretado por <b>posição de coluna</b> (sem cabeçalho).</li>
+      </ul>
     </div>
   `;
 
+  // ---- Tabela por carga ----
+  let tabelaHTML = `
+    <table class="cargas">
+      <thead>
+        <tr>
+          <th>Carga</th>
+          <th>Lojas</th>
+          <th>Linhas</th>
+          <th>Vol. Total</th>
+          <th>Vol. Montado</th>
+          <th>Vol. Agrupado</th>
+          <th>% Agrupado</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  [...cargasMap.values()].sort((a,b) => a.codigo.localeCompare(b.codigo)).forEach(c => {
+    const p = (c.qtdMontada + c.qtdAgrupada) > 0
+      ? (c.qtdAgrupada / (c.qtdMontada + c.qtdAgrupada)) * 100 : 0;
+    tabelaHTML += `
+      <tr>
+        <td><b>${c.codigo}</b></td>
+        <td>${[...c.lojas].join(', ') || '—'}</td>
+        <td>${c.linhas}</td>
+        <td>${formatNum(c.volTotal)}</td>
+        <td>${formatNum(c.volMontado)}</td>
+        <td>${formatNum(c.volAgrupado)}</td>
+        <td>${p.toFixed(2)}%</td>
+      </tr>
+    `;
+  });
+  tabelaHTML += `</tbody></table>`;
+  document.getElementById('tabelaCargas').innerHTML = tabelaHTML;
+
   document.getElementById('results').classList.remove('hidden');
-  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
+// ===================== UTILITÁRIOS =====================
 function formatNum(n) {
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 }
 
 function mostrarErro(msg) {
