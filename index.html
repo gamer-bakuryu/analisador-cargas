@@ -49,6 +49,11 @@
   .btn-primary   { background: #1e5bb8; color: #fff; }
   .btn-secondary { background: #f77f00; color: #fff; }
   .btn-ghost     { background: #fff; color: #1e5bb8; border: 2px solid #1e5bb8; }
+  .btn-exped     {
+    background: linear-gradient(135deg, #f77f00, #d96a00);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(247,127,0,.35);
+  }
 
   .cards {
     display: grid;
@@ -101,6 +106,14 @@
 
   <div class="panel">
     <h2>Entrada de Dados</h2>
+
+    <!-- BOTÃO EM DESTAQUE -->
+    <div class="buttons" style="margin-top:0; margin-bottom:16px;">
+      <button class="btn-exped" onclick="gerarRelatorioExpedicao()">
+        📋 Gerar Relatório de Expedição (nova aba)
+      </button>
+    </div>
+
     <p class="hint">
       Colunas esperadas (13):
       <code>ETQ AGRUPADORA | ETQ MASTER | STATUS ETQ | LOJA | PRODUTO | DESCRIÇÃO | EMB | QTD | PESO | VOLUME | CARGA | FORNECEDOR | DATA RECEBIMENTO</code>
@@ -181,9 +194,9 @@ const COL = {
   PRODUTO:    4,
   DESCRICAO:  5,
   EMB:        6,
-  QTD:        7,   // <-- única coluna numérica usada
-  PESO:       8,   // ignorada
-  VOLUME:     9,   // ignorada
+  QTD:        7,
+  PESO:       8,
+  VOLUME:     9,
   CARGA:      10,
   FORNECEDOR: 11,
   DATA:       12
@@ -239,6 +252,36 @@ function num(valor) {
   return isNaN(n) ? 0 : n;
 }
 
+// Converte "dd/mm/aaaa" → Date. Retorna null se inválido.
+function parseDataBR(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const dia = parseInt(m[1], 10);
+  const mes = parseInt(m[2], 10) - 1;
+  const ano = parseInt(m[3], 10);
+  const d = new Date(ano, mes, dia);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Diferença em dias (b - a), ignorando horas
+function diasEntre(a, b) {
+  if (!a || !b) return null;
+  const A = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const B = new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  return Math.round((B - A) / (1000 * 60 * 60 * 24));
+}
+
+// Formata Date → dd/mm/aaaa
+function formatDataBR(d) {
+  if (!d) return '—';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
 // ===================== PROCESSAMENTO PRINCIPAL =====================
 function processar() {
   const errBox = document.getElementById('errorBox');
@@ -250,21 +293,18 @@ function processar() {
   const primeiraLinha = raw.split(/\r?\n/)[0];
   const sep = detectarSeparador(primeiraLinha);
   const linhas = parseCSV(raw, sep);
-
   if (linhas.length === 0) { mostrarErro('Nenhuma linha de dados encontrada.'); return; }
 
-  // valida colunas mínimas
   const amostraLen = linhas[0].length;
   if (amostraLen < 8) {
     mostrarErro(
       'Formato inesperado: foram encontradas ' + amostraLen +
-      ' colunas na primeira linha. São esperadas pelo menos 8 (para ler QTD na 8ª posição). ' +
-      'Verifique se o separador é TAB e se todas as 13 colunas foram coladas.'
+      ' colunas na primeira linha. São esperadas pelo menos 8. ' +
+      'Verifique se o separador é TAB.'
     );
     return;
   }
 
-  // ---- Lê por posição ----
   const dados = [];
   const invalidas = [];
   linhas.forEach((l, idx) => {
@@ -283,60 +323,43 @@ function processar() {
       DATA:       (l[COL.DATA]       || '').trim()
     });
   });
-
   if (dados.length === 0) { mostrarErro('Nenhuma linha válida encontrada.'); return; }
 
-  // ---- Acumuladores ----
-  let qtdTotal    = 0;
-  let qtdMontado  = 0;
-  let qtdAgrupado = 0;
-  let nMontada    = 0; // linhas com status "mont"
-  let nAgrupada   = 0; // linhas com status "agrup"
-  let nSemStatus  = 0;
-
-  const cargasSet = new Set();          // números distintos de carga
-  const cargasMap = new Map();          // detalhamento por carga
+  let qtdTotal = 0, qtdMontado = 0, qtdAgrupado = 0;
+  let nMontada = 0, nAgrupada = 0, nSemStatus = 0;
+  const cargasSet = new Set();
+  const cargasMap = new Map();
 
   dados.forEach(d => {
     const q = num(d.QTD);
     qtdTotal += q;
-
     const status = d.STATUS.toLowerCase();
     const isMontada  = status.includes('mont');
     const isAgrupada = status.includes('agrup');
-
     if (isMontada)       { qtdMontado  += q; nMontada++; }
     else if (isAgrupada) { qtdAgrupado += q; nAgrupada++; }
     else                 { nSemStatus++; }
 
-    // Carga
     const cod = d.CARGA || '(sem carga)';
     if (cod !== '(sem carga)') cargasSet.add(cod);
-
     if (!cargasMap.has(cod)) {
       cargasMap.set(cod, {
-        codigo: cod,
-        qtdTotal: 0, qtdMontado: 0, qtdAgrupado: 0,
-        nMontada: 0, nAgrupada: 0,
-        linhas: 0, lojas: new Set()
+        codigo: cod, qtdTotal: 0, qtdMontado: 0, qtdAgrupado: 0,
+        nMontada: 0, nAgrupada: 0, linhas: 0, lojas: new Set()
       });
     }
     const c = cargasMap.get(cod);
-    c.qtdTotal += q;
-    c.linhas++;
+    c.qtdTotal += q; c.linhas++;
     if (isMontada)       { c.qtdMontado  += q; c.nMontada++; }
     else if (isAgrupada) { c.qtdAgrupado += q; c.nAgrupada++; }
     if (d.LOJA) c.lojas.add(d.LOJA);
   });
 
-  // % etiquetas agrupadas (por linha/etiqueta)
   const totalEtiquetas = nMontada + nAgrupada;
   const pct = totalEtiquetas > 0 ? (nAgrupada / totalEtiquetas) * 100 : 0;
 
-  // ---- Render ----
   document.getElementById('totalCargas').textContent = cargasSet.size;
   document.getElementById('totalLinhas').textContent = dados.length;
-
   document.getElementById('qtdTotal').textContent    = formatNum(qtdTotal);
   document.getElementById('pctAgrup').textContent    = pct.toFixed(2) + '%';
   document.getElementById('pctAgrupDetalhe').textContent =
@@ -348,35 +371,28 @@ function processar() {
   const bateu = Math.abs(check) < 0.001;
 
   document.getElementById('detalhes').innerHTML = `
-    <div><b>Linhas válidas:</b> ${dados.length} ${invalidas.length ? `(${invalidas.length} ignoradas por falta de colunas)` : ''}</div>
+    <div><b>Linhas válidas:</b> ${dados.length} ${invalidas.length ? `(${invalidas.length} ignoradas)` : ''}</div>
     <div><b>Etiquetas Montadas:</b> ${nMontada} &nbsp;|&nbsp; <b>Etiquetas Agrupadas:</b> ${nAgrupada}
-      ${nSemStatus ? ` &nbsp;|&nbsp; <span style="color:#b03030">Sem status reconhecido: ${nSemStatus}</span>` : ''}</div>
+      ${nSemStatus ? ` &nbsp;|&nbsp; <span style="color:#b03030">Sem status: ${nSemStatus}</span>` : ''}</div>
     <div><b>Soma Montado + Agrupado:</b> ${formatNum(qtdMontado + qtdAgrupado)}
-      ${bateu
-        ? ' ✅ bate com a quantidade total'
-        : `<span style="color:#b03030"> (diferença de ${formatNum(check)})</span>`}</div>
+      ${bateu ? ' ✅ bate com a quantidade total'
+              : `<span style="color:#b03030"> (diferença de ${formatNum(check)})</span>`}</div>
     <div style="margin-top:8px;font-size:.82rem;color:#6b7a90">
-      <b>Regras aplicadas:</b>
+      <b>Regras:</b>
       <ul style="margin:6px 0 0 18px;">
-        <li><b>Quantidade</b> = soma da coluna <code>QTD</code> (8ª coluna). <b>Peso e Volume não são utilizados.</b></li>
-        <li><b>Montada</b> / <b>Agrupada</b> identificadas pela coluna <code>STATUS ETQ</code>.</li>
-        <li><b>Quantidade de cargas</b> = números distintos em <code>CARGA</code> (não usa nome de fornecedor).</li>
+        <li><b>Quantidade</b> = soma de <code>QTD</code>. Peso e Volume <b>não</b> são usados.</li>
+        <li><b>Montada</b>/<b>Agrupada</b> identificadas pela coluna <code>STATUS ETQ</code>.</li>
+        <li><b>Quantidade de cargas</b> = números distintos em <code>CARGA</code>.</li>
       </ul>
     </div>
   `;
 
-  // ---- Tabela por carga ----
   let tabelaHTML = `
     <table class="cargas">
       <thead>
         <tr>
-          <th>Carga</th>
-          <th>Lojas</th>
-          <th>Linhas</th>
-          <th>Qtd Total</th>
-          <th>Qtd Montada</th>
-          <th>Qtd Agrupada</th>
-          <th>% Agrupado</th>
+          <th>Carga</th><th>Lojas</th><th>Linhas</th>
+          <th>Qtd Total</th><th>Qtd Montada</th><th>Qtd Agrupada</th><th>% Agrupado</th>
         </tr>
       </thead>
       <tbody>
@@ -405,6 +421,243 @@ function processar() {
   document.getElementById('results').scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
+// ===================== RELATÓRIO DE EXPEDIÇÃO (NOVA ABA) =====================
+function gerarRelatorioExpedicao() {
+  const errBox = document.getElementById('errorBox');
+  errBox.classList.add('hidden');
+
+  const raw = document.getElementById('csvInput').value.trim();
+  if (!raw) { mostrarErro('Cole os dados do relatório antes de gerar o relatório de expedição.'); return; }
+
+  const primeiraLinha = raw.split(/\r?\n/)[0];
+  const sep = detectarSeparador(primeiraLinha);
+  const linhas = parseCSV(raw, sep);
+  if (linhas.length === 0) { mostrarErro('Nenhuma linha de dados encontrada.'); return; }
+
+  if (linhas[0].length < 8) {
+    mostrarErro('Formato inesperado. Verifique se o separador é TAB e se as colunas foram coladas corretamente.');
+    return;
+  }
+
+  // Filtra apenas linhas com STATUS = Agrupada
+  const agrupadasPorLoja = new Map();
+  let dataSemEtiqueta = 0;
+
+  linhas.forEach(l => {
+    if (l.length < 8) return;
+    const status = (l[COL.STATUS] || '').trim().toLowerCase();
+    if (!status.includes('agrup')) return; // ignora montadas e outros
+
+    const loja = (l[COL.LOJA] || '').trim() || '(sem loja)';
+    const dataEtq = parseDataBR((l[COL.DATA] || '').trim());
+
+    if (!agrupadasPorLoja.has(loja)) {
+      agrupadasPorLoja.set(loja, {
+        loja,
+        qtdEtiquetas: 0,
+        dataMaisAntiga: null
+      });
+    }
+    const g = agrupadasPorLoja.get(loja);
+    g.qtdEtiquetas++;
+
+    if (!dataEtq) { dataSemEtiqueta++; return; }
+    if (!g.dataMaisAntiga || dataEtq < g.dataMaisAntiga) {
+      g.dataMaisAntiga = dataEtq;
+    }
+  });
+
+  if (agrupadasPorLoja.size === 0) {
+    mostrarErro('Nenhuma etiqueta agrupada encontrada no relatório.');
+    return;
+  }
+
+  // Agora abre a nova aba com o relatório
+  const hoje = new Date();
+  const linhasOrdenadas = [...agrupadasPorLoja.values()]
+    .sort((a, b) => a.loja.localeCompare(b.loja));
+
+  const rowsHTML = linhasOrdenadas.map(g => {
+    const aging = diasEntre(g.dataMaisAntiga, hoje);
+    let agingTxt = '—';
+    let agingClasse = '';
+    if (aging !== null) {
+      agingTxt = aging >= 0 ? `${aging} dia${aging === 1 ? '' : 's'}` : `${Math.abs(aging)} dia(s) no futuro`;
+      if (aging >= 5) agingClasse = 'critico';
+      else if (aging >= 3) agingClasse = 'atencao';
+      else if (aging >= 0) agingClasse = 'ok';
+      else agingClasse = 'futuro';
+    }
+    return `
+      <tr>
+        <td class="loja">${g.loja}</td>
+        <td class="num">${g.qtdEtiquetas}</td>
+        <td class="data">${formatDataBR(g.dataMaisAntiga)}</td>
+        <td class="aging ${agingClasse}">${agingTxt}</td>
+      </tr>
+    `;
+  }).join('');
+
+  const totalEtq = linhasOrdenadas.reduce((s, g) => s + g.qtdEtiquetas, 0);
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório de Expedição — Agrupadas por Loja</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: #f7f9fc; color: #1a2b47;
+    padding: 32px;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  header {
+    background: linear-gradient(135deg, #1e5bb8 0%, #f77f00 100%);
+    color: #fff; padding: 26px 30px; border-radius: 16px;
+    margin-bottom: 22px;
+    box-shadow: 0 6px 20px rgba(30,91,184,.25);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 14px;
+  }
+  header h1 { font-size: 1.6rem; margin-bottom: 4px; }
+  header p  { opacity: .95; font-size: .92rem; }
+  header .btn-print {
+    background: #fff; color: #1e5bb8; border: none;
+    padding: 12px 22px; border-radius: 10px;
+    font-weight: 700; font-size: .9rem; cursor: pointer;
+    transition: transform .1s, box-shadow .2s;
+  }
+  header .btn-print:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,.2); }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; margin-bottom: 22px;
+  }
+  .card {
+    background: #fff; border-radius: 14px; padding: 18px;
+    border-top: 5px solid #1e5bb8;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .card.orange { border-top-color: #f77f00; }
+  .card .label {
+    font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .5px; color: #6b7a90;
+    margin-bottom: 8px; font-weight: 600;
+  }
+  .card .value { font-size: 1.8rem; font-weight: 700; }
+
+  .panel {
+    background: #fff; border-radius: 14px; padding: 22px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    border: 1px solid #e6ecf5;
+  }
+  .panel h2 {
+    color: #1e5bb8; font-size: 1.05rem; margin-bottom: 14px;
+    border-left: 4px solid #f77f00; padding-left: 10px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  thead th {
+    background: #f2f6fc; color: #1e5bb8;
+    padding: 12px 14px; text-align: left;
+    font-weight: 700; border-bottom: 2px solid #dbe4f0;
+  }
+  tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid #e6ecf5;
+  }
+  tbody tr:hover td { background: #fff8ef; }
+  td.loja { font-weight: 700; color: #1a2b47; }
+  td.num  { font-weight: 700; font-size: 1.05rem; color: #1e5bb8; }
+  td.data { color: #334; }
+  td.aging { font-weight: 700; text-align: center; }
+  td.aging.ok      { color: #1a7a1a; }
+  td.aging.atencao { color: #d97706; }
+  td.aging.critico { color: #c02020; background: #fff0f0; }
+  td.aging.futuro  { color: #6b7a90; }
+
+  .footer-info {
+    margin-top: 18px; font-size: .82rem; color: #6b7a90;
+    line-height: 1.6;
+  }
+  .footer-info b { color: #1a2b47; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    header .btn-print { display: none; }
+    .card, .panel { box-shadow: none; border: 1px solid #ccc; }
+    td.aging.critico { background: #ffe6e6 !important; -webkit-print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>📋 Relatório de Expedição</h1>
+      <p>Etiquetas AGRUPADAS por loja — com aging da etiqueta mais antiga</p>
+      <p style="font-size:.8rem; margin-top:6px; opacity:.85;">Gerado em ${hoje.toLocaleString('pt-BR')}</p>
+    </div>
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
+  </header>
+
+  <div class="cards">
+    <div class="card">
+      <div class="label">Lojas com agrupadas</div>
+      <div class="value">${linhasOrdenadas.length}</div>
+    </div>
+    <div class="card orange">
+      <div class="label">Total de etiquetas agrupadas</div>
+      <div class="value">${totalEtq}</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Agrupadas por loja</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>LOJA</th>
+          <th>AGRUPADA</th>
+          <th>DATA MAIS ANTIGA</th>
+          <th>AGING</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHTML}
+      </tbody>
+    </table>
+    <div class="footer-info">
+      <b>Como ler:</b><br>
+      • <b>AGRUPADA</b> = quantidade de etiquetas com status <code>Agrupada</code> na loja.<br>
+      • <b>DATA MAIS ANTIGA</b> = data da etiqueta agrupada mais antiga daquela loja.<br>
+      • <b>AGING</b> = dias entre a data mais antiga e hoje.
+        <span style="color:#1a7a1a">Verde</span> = 0 a 2 dias;
+        <span style="color:#d97706">Laranja</span> = 3 a 4 dias;
+        <span style="color:#c02020">Vermelho</span> = 5+ dias;
+        <span style="color:#6b7a90">Cinza</span> = data no futuro.
+      ${dataSemEtiqueta > 0 ? `<br>⚠️ <b>${dataSemEtiqueta}</b> etiqueta(s) agrupada(s) sem data válida (não contabilizadas no aging).` : ''}
+    </div>
+  </div>
+</div>
+</body>
+</html>
+`;
+
+  const novaAba = window.open('', '_blank');
+  if (!novaAba) {
+    mostrarErro('Não foi possível abrir a nova aba. Verifique se o navegador está bloqueando pop-ups.');
+    return;
+  }
+  novaAba.document.open();
+  novaAba.document.write(html);
+  novaAba.document.close();
+}
+
 // ===================== UTILITÁRIOS =====================
 function formatNum(n) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
@@ -414,11 +667,13 @@ function mostrarErro(msg) {
   e.textContent = msg;
   e.classList.remove('hidden');
 }
+
 function limpar() {
   document.getElementById('csvInput').value = '';
   document.getElementById('results').classList.add('hidden');
   document.getElementById('errorBox').classList.add('hidden');
 }
+
 function lerArquivo(ev) {
   const f = ev.target.files[0];
   if (!f) return;
