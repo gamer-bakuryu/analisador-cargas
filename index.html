@@ -450,16 +450,17 @@ function gerarRelatorioExpedicao() {
 
     const loja = (l[COL.LOJA] || '').trim() || '(sem loja)';
     const dataEtq = parseDataBR((l[COL.DATA] || '').trim());
+    const qtd = num((l[COL.QTD] || '').trim());   // <-- SOMA A QUANTIDADE
 
     if (!agrupadasPorLoja.has(loja)) {
       agrupadasPorLoja.set(loja, {
         loja,
-        qtdEtiquetas: 0,
+        qtdVolume: 0,          // <-- agora é VOLUME (soma de QTD)
         dataMaisAntiga: null
       });
     }
     const g = agrupadasPorLoja.get(loja);
-    g.qtdEtiquetas++;
+    g.qtdVolume += qtd;        // <-- acumula quantidade
 
     if (!dataEtq) { dataSemEtiqueta++; return; }
     if (!g.dataMaisAntiga || dataEtq < g.dataMaisAntiga) {
@@ -491,14 +492,14 @@ function gerarRelatorioExpedicao() {
     return `
       <tr>
         <td class="loja">${g.loja}</td>
-        <td class="num">${g.qtdEtiquetas}</td>
+        <td class="num">${formatNum(g.qtdVolume)}</td>
         <td class="data">${formatDataBR(g.dataMaisAntiga)}</td>
         <td class="aging ${agingClasse}">${agingTxt}</td>
       </tr>
     `;
   }).join('');
 
-  const totalEtq = linhasOrdenadas.reduce((s, g) => s + g.qtdEtiquetas, 0);
+  const totalVolume = linhasOrdenadas.reduce((s, g) => s + g.qtdVolume, 0);
 
   const html = `
 <!DOCTYPE html>
@@ -599,7 +600,7 @@ function gerarRelatorioExpedicao() {
   <header>
     <div>
       <h1>📋 Relatório de Expedição</h1>
-      <p>Etiquetas AGRUPADAS por loja — com aging da etiqueta mais antiga</p>
+      <p>Etiquetas AGRUPADAS por loja — volume (QTD) e aging da etiqueta mais antiga</p>
       <p style="font-size:.8rem; margin-top:6px; opacity:.85;">Gerado em ${hoje.toLocaleString('pt-BR')}</p>
     </div>
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
@@ -611,8 +612,8 @@ function gerarRelatorioExpedicao() {
       <div class="value">${linhasOrdenadas.length}</div>
     </div>
     <div class="card orange">
-      <div class="label">Total de etiquetas agrupadas</div>
-      <div class="value">${totalEtq}</div>
+      <div class="label">Volume agrupado total</div>
+      <div class="value">${formatNum(totalVolume)}</div>
     </div>
   </div>
 
@@ -633,7 +634,7 @@ function gerarRelatorioExpedicao() {
     </table>
     <div class="footer-info">
       <b>Como ler:</b><br>
-      • <b>AGRUPADA</b> = quantidade de etiquetas com status <code>Agrupada</code> na loja.<br>
+      • <b>AGRUPADA</b> = soma da <b>quantidade (QTD)</b> das etiquetas com status <code>Agrupada</code> na loja.<br>
       • <b>DATA MAIS ANTIGA</b> = data da etiqueta agrupada mais antiga daquela loja.<br>
       • <b>AGING</b> = dias entre a data mais antiga e hoje.
         <span style="color:#1a7a1a">Verde</span> = 0 a 2 dias;
