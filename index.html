@@ -475,8 +475,8 @@ function gerarRelatorioExpedicao() {
 
   // Agora abre a nova aba com o relatório
   const hoje = new Date();
-  const linhasOrdenadas = [...agrupadasPorLoja.values()]
-    .sort((a, b) => a.loja.localeCompare(b.loja));
+ const linhasOrdenadas = [...agrupadasPorLoja.values()]
+  .sort((a, b) => b.qtdVolume - a.qtdVolume);   // <-- decrescente por volume
 
   const rowsHTML = linhasOrdenadas.map(g => {
     const aging = diasEntre(g.dataMaisAntiga, hoje);
