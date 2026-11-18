@@ -116,7 +116,7 @@
 <div class="container">
   <header>
     <h1>📦 Analisador de Carga</h1>
-    <p>Cole o relatório (TAB separado) e as cargas para amostragem.</p>
+    <p>Cole o relatório (TAB separado) e as cargas para amostragem por turno.</p>
   </header>
 
   <div class="panel">
@@ -141,7 +141,7 @@
       </div>
       <div>
         <p class="hint">
-          <b>Cargas para amostragem</b> (uma por linha, use <b>-</b> em uma linha isolada para separar lotes):
+          <b>Cargas por turno</b> (uma por linha. Use <b>-</b> para separar os turnos):
         </p>
         <textarea id="gruposInput" class="mini" placeholder="488300&#10;488269&#10;-&#10;488770&#10;488306"></textarea>
       </div>
@@ -654,7 +654,7 @@ function gerarAmostragem() {
     return;
   }
 
-  // ---- 1) Parseia os grupos: O hífen "-" em uma linha separa os lotes ----
+  // ---- 1) Parseia os grupos: O hífen "-" em uma linha separa os turnos ----
   const blocos = gruposRaw
     .split(/\n\s*-\s*\n/) // Encontra a linha que tem apenas um hífen
     .map(b => b.split(/\r?\n/).map(s => s.trim()).filter(s => s !== '' && s !== '-'))
@@ -681,12 +681,15 @@ function gerarAmostragem() {
   const resultados = [];
 
   // ---- 3) Monta os resultados linha por linha (uma carga por linha na tabela) ----
-  blocos.forEach((cargasDoLote) => {
-    cargasDoLote.forEach(cod => {
+  blocos.forEach((cargasDoTurno, indexTurno) => {
+    const nomeTurno = `Turno ${indexTurno + 1}`;
+    
+    cargasDoTurno.forEach(cod => {
       const linhasDaCarga = porCarga.get(cod);
 
       if (!linhasDaCarga || linhasDaCarga.length === 0) {
         resultados.push({
+          turno: nomeTurno,
           carga: cod,
           fornecedor: '(não encontrada)',
           volup: 0,
@@ -738,6 +741,7 @@ function gerarAmostragem() {
       const aging = dataMaisAntiga ? diasEntre(dataMaisAntiga, hoje) : null;
 
       resultados.push({
+        turno: nomeTurno,
         carga: cod,
         fornecedor: fornecedorTop,
         volup,
@@ -779,6 +783,7 @@ function gerarAmostragem() {
         <td class="data">${formatDataBR(r.dataMaisAntiga)}</td>
         <td class="aging">${agingTxt}</td>
         <td class="num">${pctTxt}</td>
+        <td class="turno" style="font-weight:bold; color:#f77f00;">${r.turno}</td>
       </tr>
     `;
   }).join('');
@@ -884,8 +889,10 @@ function gerarAmostragem() {
 
   @media print {
     body { background: #fff; padding: 0; }
-    header .btn-print { display: none; }
-    .card, .panel { box-shadow: none; border: 1px solid #ccc; }
+    header, .cards, .panel h2, .footer-info { display: none !important; }
+    .panel { box-shadow: none; border: none; padding: 0; }
+    table { min-width: 100%; }
+    thead th { background: #f2f6fc !important; -webkit-print-color-adjust: exact; }
     td.status.ok   { background: #d4f4d4 !important; -webkit-print-color-adjust: exact; }
     td.status.fail { background: #ff4d4d !important; color: #fff !important; -webkit-print-color-adjust: exact; }
   }
@@ -896,7 +903,7 @@ function gerarAmostragem() {
   <header>
     <div>
       <h1>📊 Amostragem de Agrupamento</h1>
-      <p>Distribuição de volumes agrupados por carga individual</p>
+      <p>Distribuição de volumes agrupados por carga e turno</p>
       <p style="font-size:.8rem; margin-top:6px; opacity:.85;">Gerado em ${hoje.toLocaleString('pt-BR')}</p>
     </div>
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
@@ -936,6 +943,7 @@ function gerarAmostragem() {
           <th>Data de impressão</th>
           <th>Ag</th>
           <th>%Distribuída</th>
+          <th>Turno</th>
         </tr>
       </thead>
       <tbody>
@@ -953,7 +961,8 @@ function gerarAmostragem() {
       • <b>Agrup</b> = volume efetivamente agrupado.<br>
       • <b>Data de impressão</b> = data da etiqueta mais antiga da carga.<br>
       • <b>Ag</b> = aging em dias (hoje − data mais antiga).<br>
-      • <b>%Distribuída</b> = Agrup ÷ Volup × 100.
+      • <b>%Distribuída</b> = Agrup ÷ Volup × 100.<br>
+      • <b>Turno</b> = período de trabalho em que as cargas foram agrupadas (separados por "-").
     </div>
   </div>
 </div>
