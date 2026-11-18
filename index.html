@@ -5,196 +5,198 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Analisador de Carga</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    background: #f7f9fc; color: #1a2b47;
-    min-height: 100vh; padding: 24px;
-  }
-  header {
-    background: linear-gradient(135deg, #1e5bb8 0%, #f77f00 100%);
-    color: #fff; padding: 28px 32px; border-radius: 16px;
-    margin-bottom: 24px;
-    box-shadow: 0 6px 20px rgba(30,91,184,0.25);
-  }
-  header h1 { font-size: 1.8rem; margin-bottom: 6px; }
-  header p  { opacity: .95; font-size: .95rem; }
-  .container { max-width: 1280px; margin: 0 auto; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: #f7f9fc;
+  color: #1a2b47;
+  min-height: 100vh;
+  padding: 24px;
+}
+header {
+  background: linear-gradient(135deg, #1e5bb8 0%, #f77f00 100%);
+  color: #fff;
+  padding: 28px 32px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 6px 20px rgba(30,91,184,0.25);
+}
+header h1 { font-size: 1.8rem; margin-bottom: 6px; }
+header p { opacity: .95; font-size: .95rem; }
+.container { max-width: 1280px; margin: 0 auto; }
 
-  .panel {
-    background: #fff; border-radius: 14px; padding: 22px;
-    margin-bottom: 22px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-    border: 1px solid #e6ecf5;
-  }
-  .panel h2 {
-    color: #1e5bb8; font-size: 1.1rem; margin-bottom: 12px;
-    border-left: 4px solid #f77f00; padding-left: 10px;
-  }
-  textarea {
-    width: 100%; min-height: 160px; padding: 14px;
-    border: 2px solid #dbe4f0; border-radius: 10px;
-    font-family: 'Consolas', monospace; font-size: .85rem;
-    resize: vertical;
-  }
-  textarea:focus { outline: none; border-color: #1e5bb8; }
-  textarea.mini { min-height: 90px; }
+.panel {
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 22px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  border: 1px solid #e6ecf5;
+}
+.panel h2 {
+  color: #1e5bb8;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  border-left: 4px solid #f77f00;
+  padding-left: 10px;
+}
+textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 14px;
+  border: 2px solid #dbe4f0;
+  border-radius: 10px;
+  font-family: 'Consolas', monospace;
+  font-size: .85rem;
+  resize: vertical;
+}
+textarea:focus { outline: none; border-color: #1e5bb8; }
 
-  .buttons { margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; }
-  button {
-    padding: 12px 24px; border: none; border-radius: 10px;
-    font-weight: 600; font-size: .95rem; cursor: pointer;
-    transition: transform .1s, box-shadow .2s;
-  }
-  button:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,.15); }
-  .btn-primary   { background: #1e5bb8; color: #fff; }
-  .btn-secondary { background: #f77f00; color: #fff; }
-  .btn-ghost     { background: #fff; color: #1e5bb8; border: 2px solid #1e5bb8; }
-  .btn-exped     {
-    background: linear-gradient(135deg, #f77f00, #d96a00);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(247,127,0,.35);
-  }
-  .btn-amostra   {
-    background: linear-gradient(135deg, #1e5bb8, #14417f);
-    color: #fff;
-    box-shadow: 0 4px 12px rgba(30,91,184,.35);
-  }
+.buttons { margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; }
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: transform .1s, box-shadow .2s;
+}
+button:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,.15); }
+.btn-primary { background: #1e5bb8; color: #fff; }
+.btn-secondary { background: #f77f00; color: #fff; }
+.btn-ghost { background: #fff; color: #1e5bb8; border: 2px solid #1e5bb8; }
 
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 16px;
-  }
-  .card {
-    background: #fff; border-radius: 14px; padding: 20px;
-    border-top: 5px solid #1e5bb8;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-  }
-  .card.orange { border-top-color: #f77f00; }
-  .card .label {
-    font-size: .8rem; text-transform: uppercase;
-    letter-spacing: .5px; color: #6b7a90;
-    margin-bottom: 8px; font-weight: 600;
-  }
-  .card .value {
-    font-size: 1.9rem; font-weight: 700; color: #1a2b47;
-    word-break: break-word;
-  }
-  .card .sub { font-size: .8rem; color: #6b7a90; margin-top: 6px; }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  border-top: 5px solid #1e5bb8;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.card.orange { border-top-color: #f77f00; }
+.card .label {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #6b7a90;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.card .value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #1a2b47;
+  word-break: break-word;
+}
+.card .value.small { font-size: 1.15rem; }
+.card .sub { font-size: .8rem; color: #6b7a90; margin-top: 6px; }
 
-  .error {
-    background: #ffe6e6; color: #b03030;
-    padding: 12px 16px; border-radius: 10px;
-    margin-top: 12px; font-size: .9rem;
-  }
-  .hidden { display: none; }
-  .hint { font-size: .82rem; color: #6b7a90; margin-bottom: 8px; }
+.error {
+  background: #ffe6e6; color: #b03030;
+  padding: 12px 16px; border-radius: 10px;
+  margin-top: 12px; font-size: .9rem;
+}
+.hidden { display: none; }
+.hint { font-size: .82rem; color: #6b7a90; margin-bottom: 8px; }
 
-  .grid-2 {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 16px;
-  }
-  @media (max-width: 900px) {
-    .grid-2 { grid-template-columns: 1fr; }
-  }
+/* NOVO: Lista de cargas no card */
+.lista-cargas {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.lista-cargas .item-carga {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed #e6ecf5;
+  padding: 4px 0;
+}
+.lista-cargas .item-carga:last-child { border-bottom: none; }
+.lista-cargas .item-carga .num { font-weight: 600; color: #1e5bb8; }
+.lista-cargas .item-carga .vol { color: #6b7a90; font-size: 0.85rem; }
 
-  table.cargas {
-    width: 100%; border-collapse: collapse; font-size: .88rem;
-    margin-top: 8px;
-  }
-  table.cargas th, table.cargas td {
-    padding: 8px 10px; text-align: left;
-    border-bottom: 1px solid #e6ecf5;
-  }
-  table.cargas th { background: #f2f6fc; color: #1e5bb8; font-weight: 600; }
-  table.cargas tr:hover td { background: #fff8ef; }
+table.cargas {
+  width: 100%; border-collapse: collapse; font-size: .88rem;
+  margin-top: 8px;
+}
+table.cargas th, table.cargas td {
+  padding: 10px 12px; text-align: left;
+  border-bottom: 1px solid #e6ecf5;
+}
+table.cargas th { background: #f2f6fc; color: #1e5bb8; font-weight: 600; }
+table.cargas tr:hover td { background: #fff8ef; }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1>📦 Analisador de Carga</h1>
-    <p>Cole o relatório (TAB separado) e os grupos de cargas para amostragem.</p>
+    <h1>Analisador de Carga</h1>
+    <p>Cole o relatório (TAB separado). Sem cabeçalho – a leitura é feita por posição de coluna.</p>
   </header>
 
   <div class="panel">
     <h2>Entrada de Dados</h2>
-
-    <div class="buttons" style="margin-top:0; margin-bottom:16px;">
-      <button class="btn-exped" onclick="gerarRelatorioExpedicao()">
-        📋 Gerar Relatório de Expedição (nova aba)
-      </button>
-      <button class="btn-amostra" onclick="gerarAmostragem()">
-        📊 Amostragem de Agrupamento (nova aba)
-      </button>
-    </div>
-
-    <div class="grid-2">
-      <div>
-        <p class="hint">
-          <b>Relatório completo</b> (TAB, 13 colunas):
-          <code>ETQ AGRUPADORA | ETQ MASTER | STATUS | LOJA | PRODUTO | DESCRIÇÃO | EMB | QTD | PESO | VOLUME | CARGA | FORNECEDOR | DATA</code>
-        </p>
-        <textarea id="csvInput" placeholder="A&#9;M3036802&#9;Montada&#9;LOJA 01&#9;1202685&#9;ACAFRAO...&#9;CX-24&#9;5&#9;3&#9;,01512&#9;489324&#9;FORNECEDOR&#9;30/10/2026"></textarea>
-      </div>
-      <div>
-        <p class="hint">
-          <b>Grupos de cargas</b> (um número por linha; <b>linha vazia</b> separa grupos):
-        </p>
-        <textarea id="gruposInput" class="mini" placeholder="488300&#10;488269&#10;488355&#10;488582&#10;&#10;488770&#10;488306&#10;489044&#10;&#10;488502&#10;489104"></textarea>
-      </div>
-    </div>
-
+    <p class="hint">
+      Cole as linhas direto do Excel/CSV. Formato esperado (12 colunas):
+      <code>ETQ_AGRUP | ETQ_MASTER | STATUS | LOJA | COD | DESCRIÇÃO | EMBLG | QUANT | VOLUME | CARGA | FORNECEDOR | DATA</code>
+    </p>
+    <textarea id="csvInput" placeholder="A&#9;M3036802&#9;Montada&#9;LOJA 01&#9;1202685&#9;ACAFRAO...&#9;CX-24&#9;5&#9;3,01512&#9;489324&#9;30/10/2026"></textarea>
     <div class="buttons">
-      <button class="btn-primary" onclick="processar()">🔍 Analisar</button>
-      <button class="btn-secondary" onclick="document.getElementById('file').click()">📂 Carregar Arquivo</button>
-      <button class="btn-ghost" onclick="limpar()">🗑️ Limpar</button>
+      <button class="btn-primary" onclick="processar()">Analisar</button>
+      <button class="btn-secondary" onclick="document.getElementById('file').click()">Carregar Arquivo</button>
+      <button class="btn-ghost" onclick="limpar()">Limpar</button>
       <input type="file" id="file" accept=".csv,.txt" class="hidden" onchange="lerArquivo(event)">
     </div>
     <div id="errorBox" class="error hidden"></div>
   </div>
 
   <div id="results" class="hidden">
+    
+    <!-- INFORMAÇÕES DA CARGA (Uma por linha) -->
     <div class="panel">
-      <h2>Informações da Carga</h2>
+      <h2>Informações da(s) Carga(s)</h2>
       <div class="cards">
-        <div class="card">
-          <div class="label">Quantidade de Cargas</div>
-          <div class="value" id="totalCargas">0</div>
-          <div class="sub">Números distintos na coluna CARGA</div>
+        <div class="card" style="grid-column: span 1;">
+          <div class="label">Cargas Identificadas</div>
+          <div class="lista-cargas" id="listaCargasCard">
+            <!-- Preenchido via JS -->
+          </div>
         </div>
         <div class="card orange">
-          <div class="label">Linhas Processadas</div>
-          <div class="value" id="totalLinhas">0</div>
-          <div class="sub">Etiquetas no relatório</div>
+          <div class="label">Total de Cargas</div>
+          <div class="value" id="totalCargas">0</div>
         </div>
       </div>
     </div>
 
     <div class="panel">
-      <h2>Métricas</h2>
+      <h2>Métricas Gerais</h2>
       <div class="cards">
         <div class="card">
-          <div class="label">Quantidade Total</div>
-          <div class="value" id="qtdTotal">0</div>
-          <div class="sub">Soma de QTD (todas as linhas)</div>
+          <div class="label">Volume Total da Carga</div>
+          <div class="value" id="volTotal">0</div>
+          <div class="sub" id="volTotalDetalhe">...</div>
         </div>
         <div class="card orange">
           <div class="label">% Etiquetas Agrupadas</div>
-          <div class="value" id="pctAgrup">0%</div>
-          <div class="sub" id="pctAgrupDetalhe"></div>
+          <div class="value" id="pctAgrup">0</div>
+          <div class="sub" id="pctAgrupDetalhe">...</div>
         </div>
         <div class="card">
-          <div class="label">Qtd. Montada</div>
-          <div class="value" id="qtdMontado">0</div>
-          <div class="sub">Soma de QTD onde STATUS = Montada</div>
+          <div class="label">Volume Montado</div>
+          <div class="value" id="volMontado">0</div>
+          <div class="sub">Soma do volume com STATUS = Montada</div>
         </div>
         <div class="card orange">
-          <div class="label">Qtd. Agrupada</div>
-          <div class="value" id="qtdAgrupado">0</div>
-          <div class="sub">Soma de QTD onde STATUS = Agrupada</div>
+          <div class="label">Volume Agrupado</div>
+          <div class="value" id="volAgrupado">0</div>
+          <div class="sub">Soma do volume com STATUS = Agrupada</div>
         </div>
       </div>
     </div>
@@ -204,6 +206,7 @@
       <div id="detalhes" style="font-size:.9rem; line-height:1.8; color:#334;"></div>
     </div>
 
+    <!-- DETALHAMENTO POR CARGA (TABELA) -->
     <div class="panel">
       <h2>Detalhamento por Carga</h2>
       <div id="tabelaCargas"></div>
@@ -212,27 +215,27 @@
 </div>
 
 <script>
-// ===================== MAPEAMENTO POR POSIÇÃO =====================
+// ==================== CONFIGURAÇÃO DAS COLUNAS (POR POSIÇÃO) ====================
 const COL = {
-  ETQ_AGRUP:  0,
+  ETQ_AGRUP: 0,
   ETQ_MASTER: 1,
-  STATUS:     2,
-  LOJA:       3,
-  PRODUTO:    4,
-  DESCRICAO:  5,
-  EMB:        6,
-  QTD:        7,
-  PESO:       8,
-  VOLUME:     9,
-  CARGA:      10,
-  FORNECEDOR: 11,
-  DATA:       12
+  STATUS: 2,
+  LOJA: 3,
+  COD: 4,
+  DESCRICAO: 5,
+  EMBLG: 6,
+  QUANT: 7,
+  VOLUME: 8, // Volume real
+  CARGA: 9,
+  FORNECEDOR: 10,
+  DATA: 11
 };
 
+// ==================== DETECÇÃO DE SEPARADOR ====================
 function detectarSeparador(linha) {
   if (linha.includes('\t')) return '\t';
   const virg = (linha.match(/,/g) || []).length;
-  const pv   = (linha.match(/;/g) || []).length;
+  const pv = (linha.match(/;/g) || []).length;
   return pv > virg ? ';' : ',';
 }
 
@@ -276,39 +279,158 @@ function num(valor) {
   return isNaN(n) ? 0 : n;
 }
 
-function parseDataBR(str) {
-  if (!str) return null;
-  const s = String(str).trim();
-  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return null;
-  const dia = parseInt(m[1], 10);
-  const mes = parseInt(m[2], 10) - 1;
-  const ano = parseInt(m[3], 10);
-  const d = new Date(ano, mes, dia);
-  return isNaN(d.getTime()) ? null : d;
-}
+// ================== PROCESSAMENTO PRINCIPAL ==================
+function processar() {
+  const errBox = document.getElementById('errorBox');
+  errBox.classList.add('hidden');
 
-function diasEntre(a, b) {
-  if (!a || !b) return null;
-  const A = new Date(a.getFullYear(), a.getMonth(), a.getDate());
-  const B = new Date(b.getFullYear(), b.getMonth(), b.getDate());
-  return Math.round((B - A) / (1000 * 60 * 60 * 24));
-}
+  const raw = document.getElementById('csvInput').value.trim();
+  if (!raw) { mostrarErro('Cole os dados do relatório antes de analisar.'); return; }
 
-function formatDataBR(d) {
-  if (!d) return '—';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yy = d.getFullYear();
-  return `${dd}/${mm}/${yy}`;
+  const primeiraLinha = raw.split(/\r?\n/)[0];
+  const sep = detectarSeparador(primeiraLinha);
+  const linhas = parseCSV(raw, sep);
+
+  if (linhas.length === 0) { mostrarErro('Nenhuma linha de dados encontrada.'); return; }
+
+  const amostraLen = linhas[0].length;
+  if (amostraLen < 9) {
+    mostrarErro('Formato inesperado: ' + amostraLen + ' colunas. Verifique se o separador é TAB.');
+    return;
+  }
+
+  // ---- Monta os objetos por POSIÇÃO ----
+  const dados = [];
+  const invalidas = [];
+  linhas.forEach((l, idx) => {
+    if (l.length < 9) { invalidas.push(idx + 1); return; }
+    dados.push({
+      ETQ_AGRUP: (l[COL.ETQ_AGRUP] || '').trim(),
+      ETQ_MASTER: (l[COL.ETQ_MASTER] || '').trim(),
+      STATUS: (l[COL.STATUS] || '').trim(),
+      LOJA: (l[COL.LOJA] || '').trim(),
+      COD: (l[COL.COD] || '').trim(),
+      DESCRICAO: (l[COL.DESCRICAO] || '').trim(),
+      EMBLG: (l[COL.EMBLG] || '').trim(),
+      QUANT: (l[COL.QUANT] || '').trim(),
+      VOLUME: (l[COL.VOLUME] || '').trim(),
+      CARGA: (l[COL.CARGA] || '').trim(),
+      FORNECEDOR: (l[COL.FORNECEDOR] || '').trim()
+    });
+  });
+
+  if (!dados.length) { mostrarErro('Nenhuma linha de dados válida encontrada.'); return; }
+
+  // ---- Cálculos ----
+  let volTotal = 0;
+  let volMontado = 0;
+  let volAgrupado = 0;
+  let etiquetasAgrupadas = 0;
+  let totalEtiquetas = 0;
+  const cargasSet = new Set();
+  const cargasMap = {};
+
+  dados.forEach(d => {
+    const vol = num(d.VOLUME);
+    volTotal += vol;
+
+    if (d.STATUS.toLowerCase().includes('agrup')) {
+      volAgrupado += vol;
+      etiquetasAgrupadas++;
+    } else if (d.STATUS.toLowerCase().includes('mont')) {
+      volMontado += vol;
+    }
+    
+    if (d.ETQ_AGRUP || d.ETQ_MASTER) totalEtiquetas++;
+
+    if (d.CARGA) {
+      cargasSet.add(d.CARGA);
+      if (!cargasMap[d.CARGA]) {
+        cargasMap[d.CARGA] = { num: d.CARGA, volTotal: 0, volMontado: 0, volAgrupado: 0, linhas: 0 };
+      }
+      cargasMap[d.CARGA].volTotal += vol;
+      cargasMap[d.CARGA].linhas++;
+      if (d.STATUS.toLowerCase().includes('agrup')) cargasMap[d.CARGA].volAgrupado += vol;
+      else if (d.STATUS.toLowerCase().includes('mont')) cargasMap[d.CARGA].volMontado += vol;
+    }
+  });
+
+  const listaCargas = Array.from(cargasSet);
+  const totalCargas = listaCargas.length;
+  const pctAgrup = totalEtiquetas > 0 ? (etiquetasAgrupadas / totalEtiquetas) * 100 : 0;
+
+  // ---- Renderização: Cards de Carga (Uma por linha) ----
+  const cardCargasContainer = document.getElementById('listaCargasCard');
+  if (listaCargas.length === 0) {
+    cardCargasContainer.innerHTML = '<div style="color:#6b7a90;">Nenhuma carga identificada.</div>';
+  } else {
+    let htmlCargas = '';
+    Object.values(cargasMap).forEach(c => {
+      htmlCargas += `
+        <div class="item-carga">
+          <span class="num">${c.num}</span>
+          <span class="vol">Vol: ${formatNum(c.volTotal)}</span>
+        </div>
+      `;
+    });
+    cardCargasContainer.innerHTML = htmlCargas;
+  }
+
+  document.getElementById('totalCargas').textContent = totalCargas;
+  document.getElementById('volTotal').textContent = formatNum(volTotal);
+  document.getElementById('volTotalDetalhe').textContent = dados.length + ' linhas';
+  document.getElementById('pctAgrup').textContent = pctAgrup.toFixed(1) + '%';
+  document.getElementById('pctAgrupDetalhe').textContent = etiquetasAgrupadas + ' de ' + totalEtiquetas + ' etiquetas';
+  document.getElementById('volMontado').textContent = formatNum(volMontado);
+  document.getElementById('volAgrupado').textContent = formatNum(volAgrupado);
+
+  const check = (volMontado + volAgrupado) - volTotal;
+  document.getElementById('detalhes').innerHTML = `
+    <div><b>Cargas identificadas:</b> ${totalCargas}</div>
+    <div><b>Soma Montado + Agrupado:</b> ${formatNum(volMontado + volAgrupado)}
+      ${Math.abs(check) > 0.01 ? `<span style="color:#b03030"> (diferença de ${formatNum(check)} em relação ao total)</span>` : ' ✓ bate com o total'}</div>
+    <div><b>Linhas inválidas ignoradas:</b> ${invalidas.length}</div>
+    <div style="margin-top:8px;font-size:.82rem;color:#6b7a90">
+      <b>Regra aplicada:</b> o volume é a coluna 8 (VOLUME). A separação Montado/Agrupado usa a coluna STATUS (coluna 2).
+    </div>
+  `;
+
+  // ---- Renderização: Tabela de Detalhamento (Uma carga por linha) ----
+  let htmlTabela = `
+    <table class="cargas">
+      <thead>
+        <tr>
+          <th>Carga</th>
+          <th>Linhas</th>
+          <th>Volume Total</th>
+          <th>Montado</th>
+          <th>Agrupado</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  Object.values(cargasMap).forEach(c => {
+    htmlTabela += `
+      <tr>
+        <td><strong>${c.num}</strong></td>
+        <td>${c.linhas}</td>
+        <td>${formatNum(c.volTotal)}</td>
+        <td>${formatNum(c.volMontado)}</td>
+        <td>${formatNum(c.volAgrupado)}</td>
+      </tr>
+    `;
+  });
+  
+  htmlTabela += `</tbody></table>`;
+  document.getElementById('tabelaCargas').innerHTML = htmlTabela;
+
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function formatNum(n) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-}
-
-function formatPct(n) {
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
 }
 
 function mostrarErro(msg) {
@@ -319,7 +441,6 @@ function mostrarErro(msg) {
 
 function limpar() {
   document.getElementById('csvInput').value = '';
-  document.getElementById('gruposInput').value = '';
   document.getElementById('results').classList.add('hidden');
   document.getElementById('errorBox').classList.add('hidden');
 }
@@ -334,647 +455,6 @@ function lerArquivo(ev) {
   };
   reader.readAsText(f, 'UTF-8');
   ev.target.value = '';
-}
-
-// Lê o relatório e devolve array de objetos
-function lerRelatorio() {
-  const raw = document.getElementById('csvInput').value.trim();
-  if (!raw) return null;
-
-  const primeiraLinha = raw.split(/\r?\n/)[0];
-  const sep = detectarSeparador(primeiraLinha);
-  const linhas = parseCSV(raw, sep);
-  if (linhas.length === 0) return null;
-
-  const dados = [];
-  linhas.forEach(l => {
-    if (l.length < 8) return;
-    dados.push({
-      ETQ_AGRUP:  (l[COL.ETQ_AGRUP]  || '').trim(),
-      ETQ_MASTER: (l[COL.ETQ_MASTER] || '').trim(),
-      STATUS:     (l[COL.STATUS]     || '').trim(),
-      LOJA:       (l[COL.LOJA]       || '').trim(),
-      PRODUTO:    (l[COL.PRODUTO]    || '').trim(),
-      DESCRICAO:  (l[COL.DESCRICAO]  || '').trim(),
-      EMB:        (l[COL.EMB]        || '').trim(),
-      QTD:        (l[COL.QTD]        || '').trim(),
-      CARGA:      (l[COL.CARGA]      || '').trim(),
-      FORNECEDOR: (l[COL.FORNECEDOR] || '').trim(),
-      DATA:       (l[COL.DATA]       || '').trim()
-    });
-  });
-  return dados;
-}
-
-// ===================== ANALISAR (GERAL) =====================
-function processar() {
-  const errBox = document.getElementById('errorBox');
-  errBox.classList.add('hidden');
-
-  const dados = lerRelatorio();
-  if (!dados || dados.length === 0) {
-    mostrarErro('Cole os dados do relatório antes de analisar.');
-    return;
-  }
-
-  let qtdTotal = 0, qtdMontado = 0, qtdAgrupado = 0;
-  let nMontada = 0, nAgrupada = 0, nSemStatus = 0;
-  const cargasSet = new Set();
-  const cargasMap = new Map();
-
-  dados.forEach(d => {
-    const q = num(d.QTD);
-    qtdTotal += q;
-    const status = d.STATUS.toLowerCase();
-    const isMontada  = status.includes('mont');
-    const isAgrupada = status.includes('agrup');
-    if (isMontada)       { qtdMontado  += q; nMontada++; }
-    else if (isAgrupada) { qtdAgrupado += q; nAgrupada++; }
-    else                 { nSemStatus++; }
-
-    const cod = d.CARGA || '(sem carga)';
-    if (cod !== '(sem carga)') cargasSet.add(cod);
-    if (!cargasMap.has(cod)) {
-      cargasMap.set(cod, {
-        codigo: cod, qtdTotal: 0, qtdMontado: 0, qtdAgrupado: 0,
-        nMontada: 0, nAgrupada: 0, linhas: 0, lojas: new Set()
-      });
-    }
-    const c = cargasMap.get(cod);
-    c.qtdTotal += q; c.linhas++;
-    if (isMontada)       { c.qtdMontado  += q; c.nMontada++; }
-    else if (isAgrupada) { c.qtdAgrupado += q; c.nAgrupada++; }
-    if (d.LOJA) c.lojas.add(d.LOJA);
-  });
-
-  const totalEtiquetas = nMontada + nAgrupada;
-  const pct = totalEtiquetas > 0 ? (nAgrupada / totalEtiquetas) * 100 : 0;
-
-  document.getElementById('totalCargas').textContent = cargasSet.size;
-  document.getElementById('totalLinhas').textContent = dados.length;
-  document.getElementById('qtdTotal').textContent    = formatNum(qtdTotal);
-  document.getElementById('pctAgrup').textContent    = pct.toFixed(2) + '%';
-  document.getElementById('pctAgrupDetalhe').textContent =
-    nAgrupada + ' agrupadas / ' + totalEtiquetas + ' etiquetas';
-  document.getElementById('qtdMontado').textContent  = formatNum(qtdMontado);
-  document.getElementById('qtdAgrupado').textContent = formatNum(qtdAgrupado);
-
-  const check = (qtdMontado + qtdAgrupado) - qtdTotal;
-  const bateu = Math.abs(check) < 0.001;
-
-  document.getElementById('detalhes').innerHTML = `
-    <div><b>Linhas válidas:</b> ${dados.length}</div>
-    <div><b>Etiquetas Montadas:</b> ${nMontada} &nbsp;|&nbsp; <b>Etiquetas Agrupadas:</b> ${nAgrupada}
-      ${nSemStatus ? ` &nbsp;|&nbsp; <span style="color:#b03030">Sem status: ${nSemStatus}</span>` : ''}</div>
-    <div><b>Soma Montado + Agrupado:</b> ${formatNum(qtdMontado + qtdAgrupado)}
-      ${bateu ? ' ✅ bate com a quantidade total'
-              : `<span style="color:#b03030"> (diferença de ${formatNum(check)})</span>`}</div>
-  `;
-
-  let tabelaHTML = `
-    <table class="cargas">
-      <thead>
-        <tr>
-          <th>Carga</th><th>Lojas</th><th>Linhas</th>
-          <th>Qtd Total</th><th>Qtd Montada</th><th>Qtd Agrupada</th><th>% Agrupado</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  [...cargasMap.values()]
-    .sort((a,b) => String(a.codigo).localeCompare(String(b.codigo)))
-    .forEach(c => {
-      const totalE = c.nMontada + c.nAgrupada;
-      const p = totalE > 0 ? (c.nAgrupada / totalE) * 100 : 0;
-      tabelaHTML += `
-        <tr>
-          <td><b>${c.codigo}</b></td>
-          <td>${[...c.lojas].join(', ') || '—'}</td>
-          <td>${c.linhas}</td>
-          <td>${formatNum(c.qtdTotal)}</td>
-          <td>${formatNum(c.qtdMontado)}</td>
-          <td>${formatNum(c.qtdAgrupado)}</td>
-          <td>${p.toFixed(2)}%</td>
-        </tr>
-      `;
-    });
-  tabelaHTML += `</tbody></table>`;
-  document.getElementById('tabelaCargas').innerHTML = tabelaHTML;
-
-  document.getElementById('results').classList.remove('hidden');
-  document.getElementById('results').scrollIntoView({behavior: 'smooth', block: 'start'});
-}
-
-// ===================== RELATÓRIO DE EXPEDIÇÃO =====================
-function gerarRelatorioExpedicao() {
-  const errBox = document.getElementById('errorBox');
-  errBox.classList.add('hidden');
-
-  const dados = lerRelatorio();
-  if (!dados || dados.length === 0) {
-    mostrarErro('Cole os dados do relatório antes de gerar o relatório de expedição.');
-    return;
-  }
-
-  const agrupadasPorLoja = new Map();
-  let dataSemEtiqueta = 0;
-
-  dados.forEach(d => {
-    const status = d.STATUS.toLowerCase();
-    if (!status.includes('agrup')) return;
-
-    const loja = d.LOJA || '(sem loja)';
-    const dataEtq = parseDataBR(d.DATA);
-    const qtd = num(d.QTD);
-
-    if (!agrupadasPorLoja.has(loja)) {
-      agrupadasPorLoja.set(loja, { loja, qtdVolume: 0, dataMaisAntiga: null });
-    }
-    const g = agrupadasPorLoja.get(loja);
-    g.qtdVolume += qtd;
-
-    if (!dataEtq) { dataSemEtiqueta++; return; }
-    if (!g.dataMaisAntiga || dataEtq < g.dataMaisAntiga) g.dataMaisAntiga = dataEtq;
-  });
-
-  if (agrupadasPorLoja.size === 0) {
-    mostrarErro('Nenhuma etiqueta agrupada encontrada no relatório.');
-    return;
-  }
-
-  const hoje = new Date();
-  const linhasOrdenadas = [...agrupadasPorLoja.values()]
-    .sort((a, b) => b.qtdVolume - a.qtdVolume);
-
-  const rowsHTML = linhasOrdenadas.map(g => {
-    const aging = diasEntre(g.dataMaisAntiga, hoje);
-    let agingTxt = '—';
-    let agingClasse = '';
-    if (aging !== null) {
-      agingTxt = aging >= 0 ? `${aging} dia${aging === 1 ? '' : 's'}` : `${Math.abs(aging)} dia(s) no futuro`;
-      if (aging >= 5) agingClasse = 'critico';
-      else if (aging >= 3) agingClasse = 'atencao';
-      else if (aging >= 0) agingClasse = 'ok';
-      else agingClasse = 'futuro';
-    }
-    return `
-      <tr>
-        <td class="loja">${g.loja}</td>
-        <td class="num">${formatNum(g.qtdVolume)}</td>
-        <td class="data">${formatDataBR(g.dataMaisAntiga)}</td>
-        <td class="aging ${agingClasse}">${agingTxt}</td>
-      </tr>
-    `;
-  }).join('');
-
-  const totalVolume = linhasOrdenadas.reduce((s, g) => s + g.qtdVolume, 0);
-
-  const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Relatório de Expedição — Agrupadas por Loja</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f7f9fc; color: #1a2b47; padding: 32px; }
-  .wrap { max-width: 1100px; margin: 0 auto; }
-  header { background: linear-gradient(135deg, #1e5bb8 0%, #f77f00 100%); color: #fff;
-    padding: 26px 30px; border-radius: 16px; margin-bottom: 22px;
-    box-shadow: 0 6px 20px rgba(30,91,184,.25);
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
-  header h1 { font-size: 1.6rem; margin-bottom: 4px; }
-  header p  { opacity: .95; font-size: .92rem; }
-  header .btn-print { background: #fff; color: #1e5bb8; border: none;
-    padding: 12px 22px; border-radius: 10px; font-weight: 700; font-size: .9rem; cursor: pointer; }
-  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px; margin-bottom: 22px; }
-  .card { background: #fff; border-radius: 14px; padding: 18px;
-    border-top: 5px solid #1e5bb8; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
-  .card.orange { border-top-color: #f77f00; }
-  .card .label { font-size: .78rem; text-transform: uppercase; letter-spacing: .5px;
-    color: #6b7a90; margin-bottom: 8px; font-weight: 600; }
-  .card .value { font-size: 1.8rem; font-weight: 700; }
-  .panel { background: #fff; border-radius: 14px; padding: 22px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #e6ecf5; }
-  .panel h2 { color: #1e5bb8; font-size: 1.05rem; margin-bottom: 14px;
-    border-left: 4px solid #f77f00; padding-left: 10px; }
-  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-  thead th { background: #f2f6fc; color: #1e5bb8; padding: 12px 14px; text-align: left;
-    font-weight: 700; border-bottom: 2px solid #dbe4f0; }
-  tbody td { padding: 11px 14px; border-bottom: 1px solid #e6ecf5; }
-  tbody tr:hover td { background: #fff8ef; }
-  td.loja { font-weight: 700; color: #1a2b47; }
-  td.num  { font-weight: 700; font-size: 1.05rem; color: #1e5bb8; }
-  td.data { color: #334; }
-  td.aging { font-weight: 700; text-align: center; }
-  td.aging.ok      { color: #1a7a1a; }
-  td.aging.atencao { color: #d97706; }
-  td.aging.critico { color: #c02020; background: #fff0f0; }
-  td.aging.futuro  { color: #6b7a90; }
-  .footer-info { margin-top: 18px; font-size: .82rem; color: #6b7a90; line-height: 1.6; }
-  @media print { body { background: #fff; padding: 0; } header .btn-print { display: none; }
-    .card, .panel { box-shadow: none; border: 1px solid #ccc; } }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>📋 Relatório de Expedição</h1>
-      <p>Etiquetas AGRUPADAS por loja — volume (QTD) e aging da etiqueta mais antiga</p>
-      <p style="font-size:.8rem; margin-top:6px; opacity:.85;">Gerado em ${hoje.toLocaleString('pt-BR')}</p>
-    </div>
-    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
-  </header>
-
-  <div class="cards">
-    <div class="card">
-      <div class="label">Lojas com agrupadas</div>
-      <div class="value">${linhasOrdenadas.length}</div>
-    </div>
-    <div class="card orange">
-      <div class="label">Volume agrupado total</div>
-      <div class="value">${formatNum(totalVolume)}</div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>Agrupadas por loja (maior volume primeiro)</h2>
-    <table>
-      <thead>
-        <tr><th>LOJA</th><th>AGRUPADA</th><th>DATA MAIS ANTIGA</th><th>AGING</th></tr>
-      </thead>
-      <tbody>${rowsHTML}</tbody>
-    </table>
-    <div class="footer-info">
-      <b>Como ler:</b><br>
-      • <b>AGRUPADA</b> = soma da quantidade (QTD) das etiquetas com status <code>Agrupada</code> na loja.<br>
-      • <b>DATA MAIS ANTIGA</b> = data da etiqueta agrupada mais antiga daquela loja.<br>
-      • <b>AGING</b> = dias entre a data mais antiga e hoje.
-      ${dataSemEtiqueta > 0 ? `<br>⚠️ <b>${dataSemEtiqueta}</b> etiqueta(s) sem data válida.` : ''}
-    </div>
-  </div>
-</div>
-</body>
-</html>
-`;
-
-  const novaAba = window.open('', '_blank');
-  if (!novaAba) {
-    mostrarErro('Não foi possível abrir a nova aba. Verifique se o navegador está bloqueando pop-ups.');
-    return;
-  }
-  novaAba.document.open();
-  novaAba.document.write(html);
-  novaAba.document.close();
-}
-
-// ===================== AMOSTRAGEM DE AGRUPAMENTO (NOVA ABA) =====================
-function gerarAmostragem() {
-  const errBox = document.getElementById('errorBox');
-  errBox.classList.add('hidden');
-
-  const dados = lerRelatorio();
-  if (!dados || dados.length === 0) {
-    mostrarErro('Cole os dados do relatório completo antes de gerar a amostragem.');
-    return;
-  }
-
-  const gruposRaw = document.getElementById('gruposInput').value.trim();
-  if (!gruposRaw) {
-        mostrarErro('Cole os grupos de cargas (separados por linha vazia) antes de gerar a amostragem.');
-    return;
-  }
-
-  // ---- 1) Parseia os grupos: cada bloco separado por linha vazia = 1 grupo ----
-  const blocos = gruposRaw
-    .split(/\n\s*\n/)                            // separa por linha vazia
-    .map(b => b.split(/\r?\n/).map(s => s.trim()).filter(s => s !== ''))
-    .filter(g => g.length > 0);                  // ignora blocos vazios
-
-  if (blocos.length === 0) {
-    mostrarErro('Nenhum grupo válido encontrado no campo de grupos de cargas.');
-    return;
-  }
-
-  // ---- 2) Indexa o relatório por número de carga ----
-  const porCarga = new Map();
-  dados.forEach(d => {
-    const cod = d.CARGA;
-    if (!cod) return;
-    if (!porCarga.has(cod)) porCarga.set(cod, []);
-    porCarga.get(cod).push(d);
-  });
-
-  // ---- 3) Monta os resultados por grupo ----
-  const hoje = new Date();
-  const resultados = [];
-  let semDadosNasCargas = 0;
-
-  blocos.forEach((cargasDoGrupo, idxGrupo) => {
-    // Todas as linhas de todas as cargas do grupo
-    const linhasDoGrupo = [];
-    cargasDoGrupo.forEach(cod => {
-      const ls = porCarga.get(cod);
-      if (ls) linhasDoGrupo.push(...ls);
-      else    semDadosNasCargas++;
-    });
-
-    if (linhasDoGrupo.length === 0) {
-      resultados.push({
-        ordem: idxGrupo + 1,
-        cargas: cargasDoGrupo,
-        fornecedor: '(carga não encontrada)',
-        volup: 0,
-        monta: 0,
-        agrup: 0,
-        statusTexto: 'CARGA - 0,00% DISTRIBUÍDA',
-        statusClass: 'fail',
-        dataMaisAntiga: null,
-        aging: null,
-        pctDistribuida: 0
-      });
-      return;
-    }
-
-    // Fornecedor: primeiro encontrado (o mais frequente do grupo)
-    const contFornecedor = new Map();
-    linhasDoGrupo.forEach(l => {
-      const f = l.FORNECEDOR || '(sem fornecedor)';
-      contFornecedor.set(f, (contFornecedor.get(f) || 0) + 1);
-    });
-    const fornecedorTop = [...contFornecedor.entries()]
-      .sort((a, b) => b[1] - a[1])[0][0];
-
-    // Somas por status
-    let monta = 0, agrup = 0;
-    let dataMaisAntiga = null;
-
-    linhasDoGrupo.forEach(l => {
-      const q = num(l.QTD);
-      const st = l.STATUS.toLowerCase();
-      if (st.includes('mont'))       monta += q;
-      else if (st.includes('agrup')) agrup += q;
-
-      const d = parseDataBR(l.DATA);
-      if (d && (!dataMaisAntiga || d < dataMaisAntiga)) dataMaisAntiga = d;
-    });
-
-    const volup = monta + agrup;
-    const pctDistribuida = volup > 0 ? (agrup / volup) * 100 : 0;
-
-    // Status verde/vermelho
-    let statusTexto, statusClass;
-    if (pctDistribuida >= 99.995) {
-      statusTexto = 'CARGA - 100,00% DISTRIBUÍDA';
-      statusClass = 'ok';
-    } else {
-      statusTexto = `CARGA - ${formatPct(pctDistribuida)} DISTRIBUÍDA`;
-      statusClass = 'fail';
-    }
-
-    // Aging em dias (hoje - data mais antiga). Se futura, mostra negativo.
-    const aging = dataMaisAntiga ? diasEntre(dataMaisAntiga, hoje) : null;
-
-    resultados.push({
-      ordem: idxGrupo + 1,
-      cargas: cargasDoGrupo,
-      fornecedor: fornecedorTop,
-      volup,
-      monta,
-      agrup,
-      statusTexto,
-      statusClass,
-      dataMaisAntiga,
-      aging,
-      pctDistribuida
-    });
-  });
-
-  // ---- 4) Gera o HTML da nova aba ----
-  const totalVolup  = resultados.reduce((s, r) => s + r.volup, 0);
-  const totalMonta  = resultados.reduce((s, r) => s + r.monta, 0);
-  const totalAgrup  = resultados.reduce((s, r) => s + r.agrup, 0);
-
-  const rowsHTML = resultados.map(r => {
-    // Texto de aging: "X dias" ou "X dias no futuro"
-    let agingTxt = '—';
-    if (r.aging !== null) {
-      if (r.aging >= 0) agingTxt = `${r.aging} dia${r.aging === 1 ? '' : 's'}`;
-      else              agingTxt = `${Math.abs(r.aging)} dia(s) fut.`;
-    }
-
-    const cargasTxt = r.cargas.join(', ');
-    const volupTxt  = formatNum(r.volup);
-    const montaTxt  = formatNum(r.monta);
-    const agrupTxt  = formatNum(r.agrup);
-    const dataTxt   = formatDataBR(r.dataMaisAntiga);
-    const pctTxt    = formatPct(r.pctDistribuida);
-
-    return `
-      <tr>
-        <td class="ordem">${r.ordem}</td>
-        <td class="carga">${cargasTxt}</td>
-        <td class="fornecedor">${r.fornecedor}</td>
-        <td class="num">${volupTxt}</td>
-        <td class="status ${r.statusClass}">${r.statusTexto}</td>
-        <td class="num">${montaTxt}</td>
-        <td class="num">${agrupTxt}</td>
-        <td class="data">${dataTxt}</td>
-        <td class="aging">${agingTxt}</td>
-        <td class="num">${pctTxt}</td>
-      </tr>
-    `;
-  }).join('');
-
-  const html = `
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Amostragem de Agrupamento</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    background: #f7f9fc; color: #1a2b47;
-    padding: 24px;
-  }
-  .wrap { max-width: 1400px; margin: 0 auto; }
-
-  header {
-    background: linear-gradient(135deg, #1e5bb8 0%, #f77f00 100%);
-    color: #fff; padding: 24px 28px; border-radius: 16px;
-    margin-bottom: 22px;
-    box-shadow: 0 6px 20px rgba(30,91,184,.25);
-    display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 14px;
-  }
-  header h1 { font-size: 1.5rem; margin-bottom: 4px; }
-  header p  { opacity: .95; font-size: .9rem; }
-  header .btn-print {
-    background: #fff; color: #1e5bb8; border: none;
-    padding: 12px 22px; border-radius: 10px;
-    font-weight: 700; font-size: .9rem; cursor: pointer;
-  }
-  header .btn-print:hover { box-shadow: 0 6px 14px rgba(0,0,0,.2); }
-
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 14px; margin-bottom: 22px;
-  }
-  .card {
-    background: #fff; border-radius: 14px; padding: 16px;
-    border-top: 5px solid #1e5bb8;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-  }
-  .card.orange { border-top-color: #f77f00; }
-  .card.red    { border-top-color: #c02020; }
-  .card .label {
-    font-size: .72rem; text-transform: uppercase;
-    letter-spacing: .5px; color: #6b7a90;
-    margin-bottom: 6px; font-weight: 600;
-  }
-  .card .value { font-size: 1.6rem; font-weight: 700; }
-
-  .panel {
-    background: #fff; border-radius: 14px; padding: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
-    border: 1px solid #e6ecf5;
-    overflow-x: auto;
-  }
-  .panel h2 {
-    color: #1e5bb8; font-size: 1rem; margin-bottom: 14px;
-    border-left: 4px solid #f77f00; padding-left: 10px;
-  }
-
-  table {
-    width: 100%; border-collapse: collapse;
-    font-size: .82rem; min-width: 1100px;
-  }
-  thead th {
-    background: #f2f6fc; color: #1e5bb8;
-    padding: 10px 8px; text-align: left;
-    font-weight: 700; border-bottom: 2px solid #dbe4f0;
-    white-space: nowrap;
-    position: sticky; top: 0;
-  }
-  tbody td {
-    padding: 8px 8px;
-    border-bottom: 1px solid #e6ecf5;
-    vertical-align: middle;
-  }
-  tbody tr:hover td { background: #f9fbff; }
-
-  td.ordem      { font-weight: 700; color: #6b7a90; width: 40px; text-align: center; }
-  td.carga      { font-weight: 600; color: #1a2b47; }
-  td.fornecedor { color: #334; }
-  td.num        { font-weight: 700; color: #1e5bb8; text-align: right; }
-  td.data       { color: #334; white-space: nowrap; }
-  td.aging      { text-align: center; color: #6b7a90; white-space: nowrap; }
-  td.status     {
-    font-weight: 700; padding: 6px 10px; border-radius: 6px;
-    white-space: nowrap; text-align: center;
-  }
-  td.status.ok   { background: #d4f4d4; color: #1a7a1a; }
-  td.status.fail { background: #ff4d4d; color: #fff; }
-
-  .footer-info {
-    margin-top: 16px; font-size: .8rem; color: #6b7a90;
-    line-height: 1.6;
-  }
-  .footer-info b { color: #1a2b47; }
-
-  @media print {
-    body { background: #fff; padding: 0; }
-    header .btn-print { display: none; }
-    .card, .panel { box-shadow: none; border: 1px solid #ccc; }
-    td.status.ok   { background: #d4f4d4 !important; -webkit-print-color-adjust: exact; }
-    td.status.fail { background: #ff4d4d !important; color: #fff !important; -webkit-print-color-adjust: exact; }
-  }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>📊 Amostragem de Agrupamento</h1>
-      <p>Distribuição de volumes agrupados por grupo de cargas</p>
-      <p style="font-size:.8rem; margin-top:6px; opacity:.85;">Gerado em ${hoje.toLocaleString('pt-BR')}</p>
-    </div>
-    <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
-  </header>
-
-  <div class="cards">
-    <div class="card">
-      <div class="label">Grupos analisados</div>
-      <div class="value">${resultados.length}</div>
-    </div>
-    <div class="card orange">
-      <div class="label">Volume total (grupos)</div>
-      <div class="value">${formatNum(totalVolup)}</div>
-    </div>
-    <div class="card">
-      <div class="label">Total Montado</div>
-      <div class="value">${formatNum(totalMonta)}</div>
-    </div>
-    <div class="card ${totalMonta > 0 ? 'red' : ''}">
-      <div class="label">Total Agrupado</div>
-      <div class="value">${formatNum(totalAgrup)}</div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>Amostragem por grupo</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Otd</th>
-          <th>Carga</th>
-          <th>Fornecedor</th>
-          <th>Volup</th>
-          <th>Status</th>
-          <th>Monta</th>
-          <th>Agrup</th>
-          <th>Data de impressão</th>
-          <th>Ag</th>
-          <th>%Distribuída</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rowsHTML}
-      </tbody>
-    </table>
-    <div class="footer-info">
-      <b>Como ler:</b><br>
-      • <b>Otd</b> = ordem do grupo (conforme colado).<br>
-      • <b>Carga</b> = números das cargas do grupo.<br>
-      • <b>Volup</b> = volume total do grupo (soma de QTD, Monta + Agrup).<br>
-      • <b>Status</b>: <span style="background:#d4f4d4;color:#1a7a1a;padding:0 4px;border-radius:4px;font-weight:700;">verde</span> = 100% agrupada; 
-        <span style="background:#ff4d4d;color:#fff;padding:0 4px;border-radius:4px;font-weight:700;">vermelho</span> = distribuição parcial.<br>
-      • <b>Monta</b> = volume que ainda está "montado" (não agrupado).<br>
-      • <b>Agrup</b> = volume efetivamente agrupado.<br>
-      • <b>Data de impressão</b> = data da etiqueta mais antiga do grupo.<br>
-      • <b>Ag</b> = aging em dias (hoje − data mais antiga).<br>
-      • <b>%Distribuída</b> = Agrup ÷ Volup × 100.
-      ${semDadosNasCargas > 0 ? `<br>⚠️ <b>${semDadosNasCargas}</b> número(s) de carga não foram encontrados no relatório.` : ''}
-    </div>
-  </div>
-</div>
-</body>
-</html>
-`;
-
-  const novaAba = window.open('', '_blank');
-  if (!novaAba) {
-    mostrarErro('Não foi possível abrir a nova aba. Verifique se o navegador está bloqueando pop-ups.');
-    return;
-  }
-  novaAba.document.open();
-  novaAba.document.write(html);
-  novaAba.document.close();
 }
 </script>
 </body>
