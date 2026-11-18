@@ -23,7 +23,7 @@ header {
 }
 header h1 { font-size: 1.8rem; margin-bottom: 6px; }
 header p { opacity: .95; font-size: .95rem; }
-.container { max-width: 1280px; margin: 0 auto; }
+.container { max-width: 1400px; margin: 0 auto; }
 
 .panel {
   background: #fff;
@@ -67,6 +67,35 @@ button:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0,0,0,.1
 .btn-secondary { background: #f77f00; color: #fff; }
 .btn-ghost { background: #fff; color: #1e5bb8; border: 2px solid #1e5bb8; }
 
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  border-top: 5px solid #1e5bb8;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+}
+.card.orange { border-top-color: #f77f00; }
+.card .label {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #6b7a90;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.card .value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #1a2b47;
+  word-break: break-word;
+}
+.card .sub { font-size: .8rem; color: #6b7a90; margin-top: 6px; }
+
 .error {
   background: #ffe6e6; color: #b03030;
   padding: 12px 16px; border-radius: 10px;
@@ -91,7 +120,7 @@ table.cargas tr:hover td { background: #fff8ef; }
 /* Badges de Status */
 .badge-status {
   padding: 6px 10px; border-radius: 6px; color: #fff; font-weight: bold; font-size: 0.75rem;
-  display: inline-block; text-align: center;
+  display: inline-block; text-align: center; white-space: nowrap;
 }
 .badge-red { background-color: #e54d42; }
 .badge-blue { background-color: #1e5bb8; }
@@ -99,21 +128,19 @@ table.cargas tr:hover td { background: #fff8ef; }
 /* Textos coloridos da tabela */
 .txt-blue { color: #1e5bb8; font-weight: bold; }
 .txt-gray { color: #6b7a90; }
-.txt-red { color: #e54d42; }
-.bg-laranja { background-color: #fff4e6; }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
     <h1>Analisador de Carga</h1>
-    <p>Cole o relatório de amostragem e visualize as cargas separadamente.</p>
+    <p>Cole o relatório (TAB separado) para visualizar as métricas e a amostragem por grupo.</p>
   </header>
 
   <div class="panel">
     <h2>Entrada de Dados</h2>
     <p class="hint">
-      Cole as linhas direto do Excel (separado por TAB). Formato esperado (12 colunas):
+      Cole as linhas direto do Excel. Formato esperado (12 colunas):
       <br><code>ETQ_AGRUP | ETQ_MASTER | STATUS | LOJA | COD | DESCRIÇÃO | EMBLG | QUANT | VOLUME | CARGA | FORNECEDOR | DATA</code>
     </p>
     <textarea id="csvInput" placeholder="Cole os dados aqui..."></textarea>
@@ -127,6 +154,35 @@ table.cargas tr:hover td { background: #fff8ef; }
   </div>
 
   <div id="results" class="hidden">
+    
+    <!-- MÉTRICAS GERAIS (Resgatadas) -->
+    <div class="panel">
+      <h2>Métricas Gerais</h2>
+      <div class="cards">
+        <div class="card">
+          <div class="label">Volume Total</div>
+          <div class="value" id="volTotal">0</div>
+          <div class="sub" id="volTotalDetalhe">...</div>
+        </div>
+        <div class="card orange">
+          <div class="label">% Etiquetas Agrupadas</div>
+          <div class="value" id="pctAgrup">0%</div>
+          <div class="sub" id="pctAgrupDetalhe">...</div>
+        </div>
+        <div class="card">
+          <div class="label">Volume Montado</div>
+          <div class="value" id="volMontado">0</div>
+          <div class="sub">STATUS = Montada</div>
+        </div>
+        <div class="card orange">
+          <div class="label">Volume Agrupado</div>
+          <div class="value" id="volAgrupado">0</div>
+          <div class="sub">STATUS = Agrupada</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AMOSTRAGEM POR GRUPO (Tabela da Imagem) -->
     <div class="panel">
       <h2>Amostragem por grupo</h2>
       <div class="table-responsive" id="tabelaCargas"></div>
@@ -215,29 +271,47 @@ function processar() {
 
   const amostraLen = linhas[0].length;
   if (amostraLen < 9) {
-    mostrarErro('Formato inesperado: ' + amostraLen + ' colunas. Verifique se o separador é TAB.');
+    mostrarErro('Formato inesperado: ' + amostraLen + ' colunas. Verifique o separador.');
     return;
   }
 
-  // Objeto para agrupar os dados
+  // Variáveis para as métricas gerais
+  let volTotalGeral = 0;
+  let volMontadoGeral = 0;
+  let volAgrupadoGeral = 0;
+  let etiquetasAgrupadas = 0;
+  let totalEtiquetas = 0;
+  
+  // Objeto para agrupar os dados (Tabela)
   const grupos = {};
 
   linhas.forEach((l) => {
-    // Pega o valor bruto da carga e separa por vírgula
+    const vol = num(l[COL.VOLUME]);
+    const status = (l[COL.STATUS] || '').trim().toUpperCase();
+    
+    // 1. Cálculos das Métricas Gerais (Cards)
+    volTotalGeral += vol;
+    if (status.includes('AGRUP')) {
+      volAgrupadoGeral += vol;
+      etiquetasAgrupadas++;
+    } else if (status.includes('MONT')) {
+      volMontadoGeral += vol;
+    }
+    const etqAgrup = (l[COL.ETQ_AGRUP] || '').trim();
+    const etqMaster = (l[COL.ETQ_MASTER] || '').trim();
+    if (etqAgrup || etqMaster) totalEtiquetas++;
+
+    // 2. Agrupamento para a Tabela (Amostragem)
     const rawCarga = (l[COL.CARGA] || '').trim();
     if (!rawCarga) return;
 
-    const status = (l[COL.STATUS] || '').trim().toUpperCase();
     const fornecedor = (l[COL.FORNECEDOR] || '').trim();
     const dataStr = (l[COL.DATA] || '').trim();
-    const vol = num(l[COL.VOLUME]);
-
-    // Separa as cargas por vírgula (ex: "503295, 503296" vira array)
+    
+    // Separa as cargas por vírgula
     const cargas = rawCarga.split(',').map(c => c.trim()).filter(c => c !== '');
-    const qtdCargas = cargas.length;
-
-    // Cria um ID único para o grupo baseado em Fornecedor + Data (como na sua imagem)
-    // Assim, cargas com mesma data e fornecedor aparecem na mesma linha
+    
+    // Agrupa por Fornecedor + Data + Status
     const grupoId = `${fornecedor}__${dataStr}__${status}`;
 
     if (!grupos[grupoId]) {
@@ -252,27 +326,35 @@ function processar() {
       };
     }
 
-    // Adiciona as cargas do grupo
     grupos[grupoId].cargas.push(...cargas);
     grupos[grupoId].volup += vol;
 
-    // Divide as quantidades proporcionalmente (já que na imagem os valores estão somados)
+    // Distribui o volume para Monta/Agrup
     if (status.includes('AGRUP')) {
-      grupos[grupoId].agrup += (vol / qtdCargas);
+      grupos[grupoId].agrup += vol;
     } else {
-      grupos[grupoId].monta += (vol / qtdCargas);
+      grupos[grupoId].monta += vol;
     }
   });
 
-  // Transforma em array para a tabela
+  // --- Renderizar Cards de Métricas ---
+  const pctAgrup = totalEtiquetas > 0 ? (etiquetasAgrupadas / totalEtiquetas) * 100 : 0;
+  
+  document.getElementById('volTotal').textContent = formatNum(volTotalGeral);
+  document.getElementById('volTotalDetalhe').textContent = linhas.length + ' linhas processadas';
+  document.getElementById('pctAgrup').textContent = pctAgrup.toFixed(1) + '%';
+  document.getElementById('pctAgrupDetalhe').textContent = etiquetasAgrupadas + ' de ' + totalEtiquetas + ' etiquetas';
+  document.getElementById('volMontado').textContent = formatNum(volMontadoGeral);
+  document.getElementById('volAgrupado').textContent = formatNum(volAgrupadoGeral);
+
+  // --- Renderizar Tabela de Amostragem ---
   const listaGrupos = Object.values(grupos);
 
   if (listaGrupos.length === 0) {
-    mostrarErro('Nenhum dado válido processado. Verifique as colunas.');
+    document.getElementById('tabelaCargas').innerHTML = '<p>Nenhuma carga identificada.</p>';
     return;
   }
 
-  // Renderiza a Tabela formatada igual à imagem
   let html = `
     <table class="cargas">
       <thead>
@@ -293,28 +375,15 @@ function processar() {
   `;
 
   listaGrupos.forEach((g, index) => {
-    // Remove cargas duplicadas (caso o mesmo grupo tenha sido colado duas vezes)
     const cargasUnicas = [...new Set(g.cargas)];
     const cargasString = cargasUnicas.join(', ');
-
-    // Lógica para os campos que vieram da sua imagem
-    const montaVal = g.status.includes('MONT') ? g.volup : g.monta;
-    const agrupVal = g.status.includes('AGRUP') ? g.volup : g.agrup;
-    
-    // Simula a % distribuída baseada na proporção (se Monta for maior que zero, calcula)
-    // Na sua imagem era 99,64% e 99,18%, que são valores altos de eficiência
-    let pctDistribuida = ((montaVal + agrupVal) / (g.volup || 1)) * 100;
-    // Força um valor alto se der erro de arredondamento
-    if (pctDistribuida > 100) pctDistribuida = 100;
-    
-    // Formata a data (assumindo que já vem no formato dd/mm/aaaa)
-    const dataFormatada = g.data || new Date().toLocaleDateString('pt-BR');
-    
-    // Define a cor do badge de Status
     const isAgrup = g.status.includes('AGRUP');
     const badgeClass = isAgrup ? 'badge-blue' : 'badge-red';
     
-    // Define o texto do "Ag"
+    // Simulação de % distribuída baseada nos volumes
+    let pctDistribuida = ((g.monta + g.agrup) / (g.volup || 1)) * 100;
+    if (pctDistribuida > 100) pctDistribuida = 100;
+    
     const agText = isAgrup ? '1 dia' : '2 dias';
 
     html += `
@@ -328,9 +397,9 @@ function processar() {
             ${isAgrup ? 'AGRUPADA' : 'CARGA'} - ${formatNum(pctDistribuida)}% DISTRIBUÍDA
           </span>
         </td>
-        <td class="txt-blue">${formatNum(montaVal)}</td>
-        <td class="txt-blue">${formatNum(agrupVal)}</td>
-        <td class="txt-gray">${dataFormatada}</td>
+        <td class="txt-blue">${formatNum(g.monta)}</td>
+        <td class="txt-blue">${formatNum(g.agrup)}</td>
+        <td class="txt-gray">${g.data}</td>
         <td class="txt-gray">${agText}</td>
         <td class="txt-blue" style="text-align: right;">${formatNum(pctDistribuida)}%</td>
       </tr>
