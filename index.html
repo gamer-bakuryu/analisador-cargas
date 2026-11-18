@@ -116,7 +116,7 @@
 <div class="container">
   <header>
     <h1>📦 Analisador de Carga</h1>
-    <p>Cole o relatório (TAB separado) e os grupos de cargas para amostragem.</p>
+    <p>Cole o relatório (TAB separado) e as cargas para amostragem.</p>
   </header>
 
   <div class="panel">
@@ -141,9 +141,9 @@
       </div>
       <div>
         <p class="hint">
-          <b>Grupos de cargas</b> (um número por linha; <b>linha vazia</b> separa grupos):
+          <b>Cargas para amostragem</b> (uma por linha, use <b>-</b> em uma linha isolada para separar lotes):
         </p>
-        <textarea id="gruposInput" class="mini" placeholder="488300&#10;488269&#10;488355&#10;488582&#10;&#10;488770&#10;488306&#10;489044&#10;&#10;488502&#10;489104"></textarea>
+        <textarea id="gruposInput" class="mini" placeholder="488300&#10;488269&#10;-&#10;488770&#10;488306"></textarea>
       </div>
     </div>
 
@@ -381,7 +381,7 @@ function processar() {
   let qtdTotal = 0, qtdMontado = 0, qtdAgrupado = 0;
   let nMontada = 0, nAgrupada = 0, nSemStatus = 0;
   
-  const cargasMap = new Map(); // Agora agrupa todas as cargas separadamente
+  const cargasMap = new Map();
 
   dados.forEach(d => {
     const q = num(d.QTD);
@@ -394,7 +394,6 @@ function processar() {
     else if (isAgrupada) { qtdAgrupado += q; nAgrupada++; }
     else                 { nSemStatus++; }
 
-    // AQUI ESTÁ A MÁGICA: Separa as cargas por vírgula e contabiliza uma por uma
     const rawCarga = d.CARGA || '(sem carga)';
     const cargasArray = rawCarga.split(',').map(c => c.trim()).filter(c => c !== '');
     
@@ -417,7 +416,6 @@ function processar() {
   const totalEtiquetas = nMontada + nAgrupada;
   const pct = totalEtiquetas > 0 ? (nAgrupada / totalEtiquetas) * 100 : 0;
 
-  // Atualiza os Cards
   document.getElementById('totalCargas').textContent = cargasMap.size;
   document.getElementById('totalLinhas').textContent = dados.length;
   document.getElementById('qtdTotal').textContent    = formatNum(qtdTotal);
@@ -438,7 +436,6 @@ function processar() {
               : `<span style="color:#b03030"> (diferença de ${formatNum(check)})</span>`}</div>
   `;
 
-  // ===================== TABELA DETALHAMENTO POR CARGA =====================
   let tabelaHTML = `
     <table class="cargas">
       <thead>
@@ -450,7 +447,6 @@ function processar() {
       <tbody>
   `;
   
-  // Ordena as cargas numericamente para não ficar bagunçado
   const arrayCargas = Array.from(cargasMap.values()).sort((a,b) => a.codigo.localeCompare(b.codigo, undefined, {numeric: true}));
 
   arrayCargas.forEach(c => {
@@ -654,115 +650,105 @@ function gerarAmostragem() {
 
   const gruposRaw = document.getElementById('gruposInput').value.trim();
   if (!gruposRaw) {
-    mostrarErro('Cole os grupos de cargas (separados por linha vazia) antes de gerar a amostragem.');
+    mostrarErro('Cole as cargas (separadas por "-") antes de gerar a amostragem.');
     return;
   }
 
-  // ---- 1) Parseia os grupos: cada bloco separado por linha vazia = 1 grupo ----
+  // ---- 1) Parseia os grupos: O hífen "-" em uma linha separa os lotes ----
   const blocos = gruposRaw
-    .split(/\n\s*\n/)                            // separa por linha vazia
-    .map(b => b.split(/\r?\n/).map(s => s.trim()).filter(s => s !== ''))
-    .filter(g => g.length > 0);                  // ignora blocos vazios
+    .split(/\n\s*-\s*\n/) // Encontra a linha que tem apenas um hífen
+    .map(b => b.split(/\r?\n/).map(s => s.trim()).filter(s => s !== '' && s !== '-'))
+    .filter(g => g.length > 0);
 
   if (blocos.length === 0) {
-    mostrarErro('Nenhum grupo válido encontrado no campo de grupos de cargas.');
+    mostrarErro('Nenhuma carga válida encontrada no campo de amostragem.');
     return;
   }
 
-  // ---- 2) Indexa o relatório por número de carga ----
+  // ---- 2) Indexa o relatório por número de carga (suportando múltiplas por linha) ----
   const porCarga = new Map();
   dados.forEach(d => {
     const cod = d.CARGA;
     if (!cod) return;
-    // Se a célula tiver múltiplas cargas, separa elas também
     const cargasArray = cod.split(',').map(c => c.trim()).filter(c => c !== '');
-    
     cargasArray.forEach(c => {
       if (!porCarga.has(c)) porCarga.set(c, []);
       porCarga.get(c).push(d);
     });
   });
 
-  // ---- 3) Monta os resultados por grupo ----
   const hoje = new Date();
   const resultados = [];
-  let semDadosNasCargas = 0;
 
-  blocos.forEach((cargasDoGrupo, idxGrupo) => {
-    const linhasDoGrupo = [];
-    cargasDoGrupo.forEach(cod => {
-      const ls = porCarga.get(cod);
-      if (ls) linhasDoGrupo.push(...ls);
-      else    semDadosNasCargas++;
-    });
+  // ---- 3) Monta os resultados linha por linha (uma carga por linha na tabela) ----
+  blocos.forEach((cargasDoLote) => {
+    cargasDoLote.forEach(cod => {
+      const linhasDaCarga = porCarga.get(cod);
 
-    if (linhasDoGrupo.length === 0) {
-      resultados.push({
-        ordem: idxGrupo + 1,
-        cargas: cargasDoGrupo,
-        fornecedor: '(carga não encontrada)',
-        volup: 0,
-        monta: 0,
-        agrup: 0,
-        statusTexto: 'CARGA - 0,00% DISTRIBUÍDA',
-        statusClass: 'fail',
-        dataMaisAntiga: null,
-        aging: null,
-        pctDistribuida: 0
+      if (!linhasDaCarga || linhasDaCarga.length === 0) {
+        resultados.push({
+          carga: cod,
+          fornecedor: '(não encontrada)',
+          volup: 0,
+          monta: 0,
+          agrup: 0,
+          statusTexto: 'CARGA - 0,00% DISTRIBUÍDA',
+          statusClass: 'fail',
+          dataMaisAntiga: null,
+          aging: null,
+          pctDistribuida: 0
+        });
+        return;
+      }
+
+      // Pega o fornecedor mais comum da carga
+      const contFornecedor = new Map();
+      linhasDaCarga.forEach(l => {
+        const f = l.FORNECEDOR || '(sem fornecedor)';
+        contFornecedor.set(f, (contFornecedor.get(f) || 0) + 1);
       });
-      return;
-    }
+      const fornecedorTop = [...contFornecedor.entries()].sort((a, b) => b[1] - a[1])[0][0];
 
-    // Fornecedor: primeiro encontrado (o mais frequente do grupo)
-    const contFornecedor = new Map();
-    linhasDoGrupo.forEach(l => {
-      const f = l.FORNECEDOR || '(sem fornecedor)';
-      contFornecedor.set(f, (contFornecedor.get(f) || 0) + 1);
-    });
-    const fornecedorTop = [...contFornecedor.entries()]
-      .sort((a, b) => b[1] - a[1])[0][0];
+      // Calcula monta/agrup para ESTA carga
+      let monta = 0, agrup = 0;
+      let dataMaisAntiga = null;
 
-    // Somas por status
-    let monta = 0, agrup = 0;
-    let dataMaisAntiga = null;
+      linhasDaCarga.forEach(l => {
+        const q = num(l.QTD);
+        const st = l.STATUS.toLowerCase();
+        if (st.includes('mont'))       monta += q;
+        else if (st.includes('agrup')) agrup += q;
 
-    linhasDoGrupo.forEach(l => {
-      const q = num(l.QTD);
-      const st = l.STATUS.toLowerCase();
-      if (st.includes('mont'))       monta += q;
-      else if (st.includes('agrup')) agrup += q;
+        const d = parseDataBR(l.DATA);
+        if (d && (!dataMaisAntiga || d < dataMaisAntiga)) dataMaisAntiga = d;
+      });
 
-      const d = parseDataBR(l.DATA);
-      if (d && (!dataMaisAntiga || d < dataMaisAntiga)) dataMaisAntiga = d;
-    });
+      const volup = monta + agrup;
+      const pctDistribuida = volup > 0 ? (agrup / volup) * 100 : 0;
 
-    const volup = monta + agrup;
-    const pctDistribuida = volup > 0 ? (agrup / volup) * 100 : 0;
+      let statusTexto, statusClass;
+      if (pctDistribuida >= 99.995) {
+        statusTexto = 'CARGA - 100,00% DISTRIBUÍDA';
+        statusClass = 'ok';
+      } else {
+        statusTexto = `CARGA - ${formatPct(pctDistribuida)} DISTRIBUÍDA`;
+        statusClass = 'fail';
+      }
 
-    // Status verde/vermelho
-    let statusTexto, statusClass;
-    if (pctDistribuida >= 99.995) {
-      statusTexto = 'CARGA - 100,00% DISTRIBUÍDA';
-      statusClass = 'ok';
-    } else {
-      statusTexto = `CARGA - ${formatPct(pctDistribuida)} DISTRIBUÍDA`;
-      statusClass = 'fail';
-    }
+      const aging = dataMaisAntiga ? diasEntre(dataMaisAntiga, hoje) : null;
 
-    const aging = dataMaisAntiga ? diasEntre(dataMaisAntiga, hoje) : null;
-
-    resultados.push({
-      ordem: idxGrupo + 1,
-      cargas: cargasDoGrupo,
-      fornecedor: fornecedorTop,
-      volup,
-      monta,
-      agrup,
-      statusTexto,
-      statusClass,
-      dataMaisAntiga,
-      aging,
-      pctDistribuida
+      resultados.push({
+        carga: cod,
+        fornecedor: fornecedorTop,
+        volup,
+        monta,
+        agrup,
+        statusTexto,
+        statusClass,
+        dataMaisAntiga,
+        aging,
+        pctDistribuida
+      });
     });
   });
 
@@ -771,30 +757,26 @@ function gerarAmostragem() {
   const totalMonta  = resultados.reduce((s, r) => s + r.monta, 0);
   const totalAgrup  = resultados.reduce((s, r) => s + r.agrup, 0);
 
-  const rowsHTML = resultados.map(r => {
+  const rowsHTML = resultados.map((r, index) => {
     let agingTxt = '—';
     if (r.aging !== null) {
       if (r.aging >= 0) agingTxt = `${r.aging} dia${r.aging === 1 ? '' : 's'}`;
       else              agingTxt = `${Math.abs(r.aging)} dia(s) fut.`;
     }
 
-    const cargasTxt = r.cargas.join(', ');
-    const volupTxt  = formatNum(r.volup);
-    const montaTxt  = formatNum(r.monta);
-    const agrupTxt  = formatNum(r.agrup);
-    const dataTxt   = formatDataBR(r.dataMaisAntiga);
-    const pctTxt    = formatPct(r.pctDistribuida);
+    const pctTxt = formatPct(r.pctDistribuida);
+    const numOrdem = index + 1; // Numeração sequencial de cada carga
 
     return `
       <tr>
-        <td class="ordem">${r.ordem}</td>
-        <td class="carga">${cargasTxt}</td>
+        <td class="ordem">${numOrdem}</td>
+        <td class="carga">${r.carga}</td>
         <td class="fornecedor">${r.fornecedor}</td>
-        <td class="num">${volupTxt}</td>
+        <td class="num">${formatNum(r.volup)}</td>
         <td class="status ${r.statusClass}">${r.statusTexto}</td>
-        <td class="num">${montaTxt}</td>
-        <td class="num">${agrupTxt}</td>
-        <td class="data">${dataTxt}</td>
+        <td class="num">${formatNum(r.monta)}</td>
+        <td class="num">${formatNum(r.agrup)}</td>
+        <td class="data">${formatDataBR(r.dataMaisAntiga)}</td>
         <td class="aging">${agingTxt}</td>
         <td class="num">${pctTxt}</td>
       </tr>
@@ -914,7 +896,7 @@ function gerarAmostragem() {
   <header>
     <div>
       <h1>📊 Amostragem de Agrupamento</h1>
-      <p>Distribuição de volumes agrupados por grupo de cargas</p>
+      <p>Distribuição de volumes agrupados por carga individual</p>
       <p style="font-size:.8rem; margin-top:6px; opacity:.85;">Gerado em ${hoje.toLocaleString('pt-BR')}</p>
     </div>
     <button class="btn-print" onclick="window.print()">🖨️ Imprimir / PDF</button>
@@ -922,11 +904,11 @@ function gerarAmostragem() {
 
   <div class="cards">
     <div class="card">
-      <div class="label">Grupos analisados</div>
+      <div class="label">Cargas analisadas</div>
       <div class="value">${resultados.length}</div>
     </div>
     <div class="card orange">
-      <div class="label">Volume total (grupos)</div>
+      <div class="label">Volume total</div>
       <div class="value">${formatNum(totalVolup)}</div>
     </div>
     <div class="card">
@@ -940,7 +922,7 @@ function gerarAmostragem() {
   </div>
 
   <div class="panel">
-    <h2>Amostragem por grupo</h2>
+    <h2>Amostragem por carga</h2>
     <table>
       <thead>
         <tr>
@@ -962,17 +944,16 @@ function gerarAmostragem() {
     </table>
     <div class="footer-info">
       <b>Como ler:</b><br>
-      • <b>Otd</b> = ordem do grupo (conforme colado).<br>
-      • <b>Carga</b> = números das cargas do grupo.<br>
-      • <b>Volup</b> = volume total do grupo (soma de QTD, Monta + Agrup).<br>
+      • <b>Otd</b> = ordem da carga na lista.<br>
+      • <b>Carga</b> = número da carga.<br>
+      • <b>Volup</b> = volume total da carga (Monta + Agrup).<br>
       • <b>Status</b>: <span style="background:#d4f4d4;color:#1a7a1a;padding:0 4px;border-radius:4px;font-weight:700;">verde</span> = 100% agrupada; 
         <span style="background:#ff4d4d;color:#fff;padding:0 4px;border-radius:4px;font-weight:700;">vermelho</span> = distribuição parcial.<br>
       • <b>Monta</b> = volume que ainda está "montado" (não agrupado).<br>
       • <b>Agrup</b> = volume efetivamente agrupado.<br>
-      • <b>Data de impressão</b> = data da etiqueta mais antiga do grupo.<br>
+      • <b>Data de impressão</b> = data da etiqueta mais antiga da carga.<br>
       • <b>Ag</b> = aging em dias (hoje − data mais antiga).<br>
       • <b>%Distribuída</b> = Agrup ÷ Volup × 100.
-      ${semDadosNasCargas > 0 ? `<br>⚠️ <b>${semDadosNasCargas}</b> número(s) de carga não foram encontrados no relatório.` : ''}
     </div>
   </div>
 </div>
