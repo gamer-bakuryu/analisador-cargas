@@ -336,11 +336,9 @@ function lerArquivo(ev) {
   ev.target.value = '';
 }
 
-// Lê o relatório e devolve array de objetos
 function lerRelatorio() {
   const raw = document.getElementById('csvInput').value.trim();
   if (!raw) return null;
-
   const primeiraLinha = raw.split(/\r?\n/)[0];
   const sep = detectarSeparador(primeiraLinha);
   const linhas = parseCSV(raw, sep);
@@ -684,27 +682,30 @@ function gerarAmostragem() {
   blocos.forEach((cargasDoTurno, indexTurno) => {
     const nomeTurno = `Turno ${indexTurno + 1}`;
     
-    cargasDoTurno.forEach(cod => {
+    cargasDoTurno.forEach((cod, idxCarga) => {
       const linhasDaCarga = porCarga.get(cod);
+      const isLastInTurno = (idxCarga === cargasDoTurno.length - 1);
+      
+      const baseObj = {
+        turno: nomeTurno,
+        carga: cod,
+        isLastInTurno: isLastInTurno,
+        fornecedor: '(não encontrada)',
+        volup: 0,
+        monta: 0,
+        agrup: 0,
+        statusTexto: 'CARGA - 0,00% DISTRIBUÍDA',
+        statusClass: 'fail',
+        dataMaisAntiga: null,
+        aging: null,
+        pctDistribuida: 0
+      };
 
       if (!linhasDaCarga || linhasDaCarga.length === 0) {
-        resultados.push({
-          turno: nomeTurno,
-          carga: cod,
-          fornecedor: '(não encontrada)',
-          volup: 0,
-          monta: 0,
-          agrup: 0,
-          statusTexto: 'CARGA - 0,00% DISTRIBUÍDA',
-          statusClass: 'fail',
-          dataMaisAntiga: null,
-          aging: null,
-          pctDistribuida: 0
-        });
+        resultados.push(baseObj);
         return;
       }
 
-      // Pega o fornecedor mais comum da carga
       const contFornecedor = new Map();
       linhasDaCarga.forEach(l => {
         const f = l.FORNECEDOR || '(sem fornecedor)';
@@ -712,7 +713,6 @@ function gerarAmostragem() {
       });
       const fornecedorTop = [...contFornecedor.entries()].sort((a, b) => b[1] - a[1])[0][0];
 
-      // Calcula monta/agrup para ESTA carga
       let monta = 0, agrup = 0;
       let dataMaisAntiga = null;
 
@@ -741,8 +741,7 @@ function gerarAmostragem() {
       const aging = dataMaisAntiga ? diasEntre(dataMaisAntiga, hoje) : null;
 
       resultados.push({
-        turno: nomeTurno,
-        carga: cod,
+        ...baseObj,
         fornecedor: fornecedorTop,
         volup,
         monta,
@@ -769,10 +768,14 @@ function gerarAmostragem() {
     }
 
     const pctTxt = formatPct(r.pctDistribuida);
-    const numOrdem = index + 1; // Numeração sequencial de cada carga
+    const numOrdem = index + 1;
+
+    // Adiciona a borda inferior grossa se for a última carga do turno, exceto no último turno geral
+    const isLastRowOverall = index === resultados.length - 1;
+    const rowClass = (r.isLastInTurno && !isLastRowOverall) ? 'class="turno-divider"' : '';
 
     return `
-      <tr>
+      <tr ${rowClass}>
         <td class="ordem">${numOrdem}</td>
         <td class="carga">${r.carga}</td>
         <td class="fornecedor">${r.fornecedor}</td>
@@ -868,6 +871,12 @@ function gerarAmostragem() {
   }
   tbody tr:hover td { background: #f9fbff; }
 
+  /* ESTILO DE SEPARAÇÃO DE TURNO */
+  tr.turno-divider td {
+    border-bottom: 3px solid #1e5bb8 !important;
+    background-color: #fcfdfe;
+  }
+
   td.ordem      { font-weight: 700; color: #6b7a90; width: 40px; text-align: center; }
   td.carga      { font-weight: 600; color: #1a2b47; }
   td.fornecedor { color: #334; }
@@ -895,6 +904,7 @@ function gerarAmostragem() {
     thead th { background: #f2f6fc !important; -webkit-print-color-adjust: exact; }
     td.status.ok   { background: #d4f4d4 !important; -webkit-print-color-adjust: exact; }
     td.status.fail { background: #ff4d4d !important; color: #fff !important; -webkit-print-color-adjust: exact; }
+    tr.turno-divider td { border-bottom: 3px solid #1e5bb8 !important; -webkit-print-color-adjust: exact; }
   }
 </style>
 </head>
@@ -962,7 +972,7 @@ function gerarAmostragem() {
       • <b>Data de impressão</b> = data da etiqueta mais antiga da carga.<br>
       • <b>Ag</b> = aging em dias (hoje − data mais antiga).<br>
       • <b>%Distribuída</b> = Agrup ÷ Volup × 100.<br>
-      • <b>Turno</b> = período de trabalho em que as cargas foram agrupadas (separados por "-").
+      • <b>Turno</b> = período de trabalho em que as cargas foram agrupadas.
     </div>
   </div>
 </div>
